@@ -1,0 +1,25 @@
+# Build outputs
+.next/
+.turbopack/
+dist/
+build/
+out/
+node_modules/
+
+# Config files
+next.config.js
+tailwind.config.ts
+postcss.config.js
+
+# Test coverage
+coverage/
+
+# Service worker output
+public/sw.js
+public/sw.js.map
+
+# Generated types
+*.d.ts
+
+# Cache
+.cache/

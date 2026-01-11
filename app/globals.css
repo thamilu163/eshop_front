@@ -1,0 +1,522 @@
+/* Tailwind CSS v4 - Import utilities (replaces @tailwind directives) */
+@import 'tailwindcss';
+
+/* Define your theme using @theme directive (Tailwind v4 way) */
+@theme {
+  /* Colors */
+  --color-border: hsl(214.3 31.8% 91.4%);
+  --color-input: hsl(214.3 31.8% 91.4%);
+  --color-ring: hsl(221.2 83.2% 53.3%);
+  --color-background: hsl(0 0% 100%);
+  --color-foreground: hsl(222.2 84% 4.9%);
+
+  --color-primary: hsl(221.2 83.2% 53.3%);
+  --color-primary-foreground: hsl(210 40% 98%);
+
+  --color-secondary: hsl(210 40% 96.1%);
+  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
+
+  --color-destructive: hsl(0 84.2% 60.2%);
+  --color-destructive-foreground: hsl(210 40% 98%);
+
+  --color-muted: hsl(210 40% 96.1%);
+  --color-muted-foreground: hsl(215.4 16.3% 46.9%);
+
+  --color-accent: hsl(210 40% 96.1%);
+  --color-accent-foreground: hsl(222.2 47.4% 11.2%);
+
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(222.2 84% 4.9%);
+
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(222.2 84% 4.9%);
+
+  /* Border Radius */
+  --radius-lg: 0.5rem;
+  --radius-md: calc(var(--radius-lg) - 2px);
+  --radius-sm: calc(var(--radius-lg) - 4px);
+
+  /* Fonts */
+  --font-sans:
+    ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+    'Noto Color Emoji';
+}
+
+/* Dark mode theme */
+@theme dark {
+  --color-border: hsl(217.2 32.6% 17.5%);
+  --color-input: hsl(217.2 32.6% 17.5%);
+  --color-ring: hsl(224.3 76.3% 48%);
+  --color-background: hsl(222.2 84% 4.9%);
+  --color-foreground: hsl(210 40% 98%);
+
+  --color-primary: hsl(217.2 91.2% 59.8%);
+  --color-primary-foreground: hsl(222.2 47.4% 11.2%);
+
+  --color-secondary: hsl(217.2 32.6% 17.5%);
+  --color-secondary-foreground: hsl(210 40% 98%);
+
+  --color-destructive: hsl(0 62.8% 30.6%);
+  --color-destructive-foreground: hsl(210 40% 98%);
+
+  --color-muted: hsl(217.2 32.6% 17.5%);
+  --color-muted-foreground: hsl(215 20.2% 65.1%);
+
+  --color-accent: hsl(217.2 32.6% 17.5%);
+  --color-accent-foreground: hsl(210 40% 98%);
+
+  --color-popover: hsl(222.2 84% 4.9%);
+  --color-popover-foreground: hsl(210 40% 98%);
+
+  --color-card: hsl(222.2 84% 4.9%);
+  --color-card-foreground: hsl(210 40% 98%);
+}
+
+/* Base styles */
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+}
+/* ==========================================================================
+   Enterprise Design System - Global Styles
+   Version: 2.0.0
+   ========================================================================== */
+
+/* Layer order declaration - critical for specificity management */
+@layer reset, base, tokens, components, utilities, overrides;
+
+/* ==========================================================================
+   Theme Tokens (Tailwind v4)
+   Note: @tailwind directives removed - using @import "tailwindcss" at top of file
+   ========================================================================== */
+@layer tokens {
+  @theme {
+    /* === Colors === */
+    --color-border: hsl(214.3 31.8% 91.4%);
+    --color-input: hsl(214.3 31.8% 91.4%);
+    --color-ring: hsl(221.2 83.2% 53.3%);
+    --color-background: hsl(0 0% 100%);
+    --color-foreground: hsl(222.2 84% 4.9%);
+
+    --color-primary: hsl(221.2 83.2% 53.3%);
+    --color-primary-foreground: hsl(210 40% 98%);
+
+    --color-secondary: hsl(210 40% 96.1%);
+    --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
+
+    --color-destructive: hsl(0 84.2% 60.2%);
+    --color-destructive-foreground: hsl(210 40% 98%);
+
+    --color-muted: hsl(210 40% 96.1%);
+    --color-muted-foreground: hsl(215.4 16.3% 46.9%);
+
+    --color-accent: hsl(210 40% 96.1%);
+    --color-accent-foreground: hsl(222.2 47.4% 11.2%);
+
+    --color-popover: hsl(0 0% 100%);
+    --color-popover-foreground: hsl(222.2 84% 4.9%);
+
+    --color-card: hsl(0 0% 100%);
+    --color-card-foreground: hsl(222.2 84% 4.9%);
+
+    /* === Spacing Scale === */
+    --spacing-px: 1px;
+    --spacing-0: 0px;
+    --spacing-0-5: 0.125rem;
+    --spacing-1: 0.25rem;
+    --spacing-2: 0.5rem;
+    --spacing-3: 0.75rem;
+    --spacing-4: 1rem;
+    --spacing-5: 1.25rem;
+    --spacing-6: 1.5rem;
+    --spacing-8: 2rem;
+    --spacing-10: 2.5rem;
+    --spacing-12: 3rem;
+    --spacing-16: 4rem;
+    --spacing-20: 5rem;
+    --spacing-24: 6rem;
+
+    /* === Border Radius === */
+    --radius-none: 0;
+    --radius-sm: calc(var(--radius-lg) - 4px);
+    --radius-md: calc(var(--radius-lg) - 2px);
+    --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
+    --radius-2xl: 1rem;
+    --radius-full: 9999px;
+
+    /* === Shadows === */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+    /* === Typography === */
+    --font-sans:
+      ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+      'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+    /* === Transitions === */
+    --transition-fast: 150ms;
+    --transition-normal: 200ms;
+    --transition-slow: 300ms;
+    --easing-default: cubic-bezier(0.4, 0, 0.2, 1);
+    --easing-in: cubic-bezier(0.4, 0, 1, 1);
+    --easing-out: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+/* ==========================================================================
+   Base Styles
+   ========================================================================== */
+@layer base {
+  /* Color scheme */
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
+  /* Dark mode tokens */
+  .dark {
+    --color-border: hsl(217.2 32.6% 17.5%);
+    --color-input: hsl(217.2 32.6% 17.5%);
+    --color-ring: hsl(224.3 76.3% 48%);
+    --color-background: hsl(222.2 84% 4.9%);
+    --color-foreground: hsl(210 40% 98%);
+
+    --color-primary: hsl(217.2 91.2% 59.8%);
+    --color-primary-foreground: hsl(222.2 47.4% 11.2%);
+
+    --color-secondary: hsl(217.2 32.6% 17.5%);
+    --color-secondary-foreground: hsl(210 40% 98%);
+
+    --color-destructive: hsl(0 62.8% 30.6%);
+    --color-destructive-foreground: hsl(210 40% 98%);
+
+    --color-muted: hsl(217.2 32.6% 17.5%);
+    --color-muted-foreground: hsl(215 20.2% 65.1%);
+
+    --color-accent: hsl(217.2 32.6% 17.5%);
+    --color-accent-foreground: hsl(210 40% 98%);
+
+    --color-popover: hsl(222.2 84% 4.9%);
+    --color-popover-foreground: hsl(210 40% 98%);
+
+    --color-card: hsl(222.2 84% 4.9%);
+    --color-card-foreground: hsl(210 40% 98%);
+  }
+
+  /* Universal border color */
+  * {
+    border-color: var(--color-border);
+  }
+
+  /* Body defaults */
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Smooth scroll - with a11y consideration */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  /* Selection styling */
+  ::selection {
+    background-color: hsl(221.2 83.2% 53.3% / 0.3);
+    color: var(--color-foreground);
+  }
+
+  .dark ::selection {
+    background-color: hsl(217.2 91.2% 59.8% / 0.3);
+  }
+
+  /* Scrollbar styling */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-muted-foreground) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-muted);
+    border-radius: 6px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, var(--color-primary), hsl(270 70% 50%));
+    border-radius: 6px;
+    border: 2px solid var(--color-muted);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to bottom, hsl(221.2 83.2% 48%), hsl(270 70% 45%));
+  }
+}
+
+/* ==========================================================================
+   Animations
+   ========================================================================== */
+@layer utilities {
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0) translateZ(0);
+    }
+    50% {
+      transform: translateY(-20px) translateZ(0);
+    }
+  }
+
+  @keyframes float-delayed {
+    0%,
+    100% {
+      transform: translateY(0) translateZ(0);
+    }
+    50% {
+      transform: translateY(-30px) translateZ(0);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  /* Only animate if user allows */
+  @media (prefers-reduced-motion: no-preference) {
+    .animate-float {
+      animation: float 6s ease-in-out infinite;
+      will-change: transform;
+    }
+
+    .animate-float-delayed {
+      animation: float-delayed 8s ease-in-out infinite;
+      animation-delay: 1s;
+      will-change: transform;
+    }
+
+    .animate-shimmer {
+      animation: shimmer 2s infinite;
+    }
+  }
+
+  /* Disable all animations for reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-float,
+    .animate-float-delayed,
+    .animate-shimmer {
+      animation: none;
+    }
+  }
+}
+
+/* ==========================================================================
+   Layout Utilities
+   ========================================================================== */
+@layer utilities {
+  .page-container {
+    width: 100%;
+    max-width: 1200px;
+    margin-inline: auto;
+    padding-inline: var(--spacing-4);
+
+    @media (min-width: 1280px) {
+      max-width: 1400px;
+    }
+
+    @media (min-width: 1536px) {
+      max-width: 1600px;
+      padding-inline: var(--spacing-6);
+    }
+  }
+
+  .focus-ring {
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-ring);
+      outline-offset: 2px;
+    }
+  }
+}
+
+/* ==========================================================================
+   Error Page Component (Scoped)
+   ========================================================================== */
+@layer components {
+  .global-error-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-4);
+
+    .error-container {
+      max-width: 32rem;
+      text-align: center;
+    }
+
+    .icon-container {
+      width: 5rem;
+      height: 5rem;
+      margin: 0 auto var(--spacing-8);
+      border-radius: var(--radius-full);
+      background: hsl(0 93% 94%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .dark & {
+        background: hsl(0 62% 20%);
+      }
+    }
+
+    .error-icon {
+      width: 2.5rem;
+      height: 2.5rem;
+      color: hsl(0 72% 51%);
+
+      .dark & {
+        color: hsl(0 85% 70%);
+      }
+    }
+
+    .error-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: var(--spacing-2);
+      color: var(--color-foreground);
+    }
+
+    .error-description {
+      color: var(--color-muted-foreground);
+      margin-bottom: var(--spacing-4);
+      line-height: 1.6;
+    }
+
+    .error-id {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--color-muted-foreground);
+      margin-top: var(--spacing-4);
+    }
+
+    .button-group {
+      display: flex;
+      gap: var(--spacing-2);
+      justify-content: center;
+      margin-top: var(--spacing-8);
+      flex-wrap: wrap;
+    }
+
+    .error-button {
+      padding: var(--spacing-2) var(--spacing-4);
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--color-border);
+      background: var(--color-background);
+      color: var(--color-foreground);
+      transition: all var(--transition-fast) var(--easing-default);
+
+      &:hover {
+        background: var(--color-muted);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--color-ring);
+        outline-offset: 2px;
+      }
+
+      &:active {
+        transform: scale(0.98);
+      }
+
+      &.primary {
+        background: var(--color-primary);
+        color: var(--color-primary-foreground);
+        border-color: var(--color-primary);
+
+        &:hover {
+          background: hsl(221.2 83.2% 48%);
+        }
+
+        &:focus-visible {
+          box-shadow: 0 0 0 4px hsl(221.2 83.2% 53.3% / 0.3);
+        }
+      }
+    }
+  }
+}
+
+/* ==========================================================================
+   High Contrast Mode Support
+   ========================================================================== */
+@layer base {
+  @media (prefers-contrast: high) {
+    :root {
+      --color-border: hsl(0 0% 0%);
+      --color-ring: hsl(0 0% 0%);
+    }
+
+    .dark {
+      --color-border: hsl(0 0% 100%);
+      --color-ring: hsl(0 0% 100%);
+    }
+
+    *:focus-visible {
+      outline-width: 3px !important;
+    }
+  }
+}
+
+/* ==========================================================================
+   Print Styles
+   ========================================================================== */
+@layer base {
+  @media print {
+    *,
+    *::before,
+    *::after {
+      background: transparent !important;
+      color: #000 !important;
+      box-shadow: none !important;
+    }
+
+    nav,
+    .no-print {
+      display: none !important;
+    }
+
+    a[href]::after {
+      content: ' (' attr(href) ')';
+      font-size: 0.8em;
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "**/*",
+    "**/*.d.ts",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "scripts/**/*",
+    "tailwind.config.ts",
+    "*.config.ts",
+    "config/**/*.ts",
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "dist",
+    "out",
+    "build",
+    "**/__snapshots__/**"
+  ]
+}
