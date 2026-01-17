@@ -125,6 +125,7 @@ export interface CategoryDTO {
   imageUrl?: string;
   active: boolean;
   parentCategory?: CategoryDTO;
+  children?: CategoryDTO[];
   createdAt: string;
 }
 
@@ -161,7 +162,7 @@ export interface ShopDTO {
 // Same structure as ShopDTO but semantically different in the seller context
 export interface StoreDTO {
   id: number;
-  shopName: string;
+  storeName: string;
   description: string;
   logoUrl?: string;
   email?: string;

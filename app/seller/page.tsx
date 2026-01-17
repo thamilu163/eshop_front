@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Sidebar from '@/components/layout/sidebar';
 import {
   Store,
   Package,
@@ -52,7 +51,6 @@ export default function SellerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
-  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   console.log('[Seller/Page] Component rendering');
   console.log('[Seller/Page] Session status:', status);
@@ -62,27 +60,8 @@ export default function SellerPage() {
   useEffect(() => {
     console.log('[Seller/Page] useEffect running, status:', status);
 
-    // Wait for session to be authenticated
-    if (status === 'loading') {
-      console.log('[Seller/Page] Session loading...');
-      return;
-    }
-
-    if (status === 'unauthenticated') {
-      console.log('[Seller/Page] ⚠️ Not authenticated');
-      setLoading(false);
-      return;
-    }
-
-    // Check if user has SELLER role
-    const roles = (session?.roles || []) as string[];
-    console.log('[Seller/Page] Checking roles:', roles);
-
-    if (!roles.includes('SELLER')) {
-      console.log('[Seller/Page] ❌ User does not have SELLER role, redirecting to home');
-      router.push('/');
-      return;
-    }
+    // Guard against loading or unauthenticated states (handled by SellerGuard, but keeping for safety in this local effect)
+    if (status !== 'authenticated') return;
 
     // Check if we have access token
     const accessToken = (session as any)?.accessToken;
@@ -114,30 +93,15 @@ export default function SellerPage() {
 
         console.log('[Seller/Page] 📡 Response status:', res.status);
 
-        // Gracefully handle non-OK responses without throwing uncaught errors
+        // Gracefully handle non-OK responses
         if (!res.ok) {
-          // Check if error is "User is not a seller" - redirect to onboarding
-          if (res.status === 400 || res.status === 403) {
-            try {
-              const raw = await res.text();
-              if (raw.includes('User is not a seller') || raw.includes('not a seller')) {
-                console.log('[Seller/Page] User needs onboarding');
-                setNeedsOnboarding(true);
-                setLoading(false);
-                return;
-              }
-            } catch (e) {
-              // Continue with normal error handling
-            }
-          }
-
           let msg = `HTTP ${res.status}:${res.statusText ? ' ' + res.statusText : ''}`;
           try {
             const raw = await res.text();
             console.warn('[Seller/Page] Raw error body:', raw);
             const correlation =
               res.headers.get('x-correlation-id') || res.headers.get('x-correlation') || null;
-            // Try to parse JSON error body (including RFC7807 problem+json)
+            // Try to parse JSON error body
             let body: any = null;
             try {
               body = raw ? JSON.parse(raw) : null;
@@ -154,7 +118,6 @@ export default function SellerPage() {
                 (body.errors ? JSON.stringify(body.errors) : msg) ||
                 msg;
             } else if (raw) {
-              // Not JSON: include raw text (trimmed)
               msg = `${msg} ${raw.substring(0, 300)}`;
             }
 
@@ -162,7 +125,7 @@ export default function SellerPage() {
               msg = `${msg} (ref: ${correlation})`;
             }
           } catch (e) {
-            // ignore parse errors, keep default message
+            // ignore parse errors
           }
 
           console.warn('[Seller/Page] API returned error:', msg);
@@ -186,9 +149,9 @@ export default function SellerPage() {
       }
     })();
 
-    // Cleanup: abort fetch if component unmounts or dependencies change
+    // Cleanup
     return () => controller.abort();
-  }, [session, status, router]);
+  }, [session, status, router, retryKey]);
 
   const handleRetry = () => {
     setError(null);
@@ -203,45 +166,6 @@ export default function SellerPage() {
         <div className="flex flex-col items-center gap-4">
           <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
           <span className="text-gray-600">Loading dashboard...</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Onboarding needed state
-  if (needsOnboarding) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900">
-        <div className="container mx-auto px-4 py-6 md:px-6">
-          <Card className="border-2 border-blue-500">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100">
-                  <Store className="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-blue-600">Complete Seller Onboarding</CardTitle>
-                  <CardDescription>
-                    You have the SELLER role but need to complete your seller profile
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded border border-blue-200 bg-blue-50 px-4 py-3 text-blue-700">
-                <p className="mb-4">
-                  <strong>Almost there!</strong> To access the seller dashboard and start selling,
-                  you need to complete your seller profile.
-                </p>
-                <button
-                  onClick={() => router.push('/seller/onboard')}
-                  className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-                >
-                  Complete Seller Profile
-                </button>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     );
@@ -305,9 +229,8 @@ export default function SellerPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900">
-      <div className="container mx-auto grid grid-cols-1 gap-6 px-4 py-6 md:px-6 lg:grid-cols-[240px_1fr]">
-        <Sidebar />
-        <main className="space-y-6">
+      <div className="container mx-auto px-4 py-6 md:px-6">
+        <div className="space-y-6">
           {/* Welcome Card */}
           <Card className="border-2 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
             <CardHeader>
@@ -318,16 +241,24 @@ export default function SellerPage() {
                   </div>
                   <div>
                     <CardTitle className="text-2xl">
-                      {dashboard?.shopOverview?.shopName || session?.user?.name || 'Your Shop'}
+                      {dashboard?.shopOverview?.shopName && dashboard?.shopOverview?.shopName !== 'N/A'
+                        ? dashboard.shopOverview.shopName
+                        : session?.user?.name || 'Your Shop'}
                     </CardTitle>
                     <CardDescription className="text-base">
                       Welcome back, {session?.user?.name || session?.user?.email || 'Seller'}!
                     </CardDescription>
                   </div>
                 </div>
-                <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 px-3 py-1 text-sm text-white">
-                  {session?.roles?.join(', ') || 'SELLER'}
-                </Badge>
+                <div className="flex gap-2">
+                  {(session?.roles as string[])
+                    ?.filter((role) => !['offline_access', 'uma_authorization', 'default-roles-eshop'].includes(role))
+                    .map((role) => (
+                      <Badge key={role} className="bg-gradient-to-r from-blue-600 to-purple-600 px-3 py-1 text-sm text-white">
+                        {role}
+                      </Badge>
+                    ))}
+                </div>
               </div>
             </CardHeader>
           </Card>
@@ -468,9 +399,9 @@ export default function SellerPage() {
             <CardContent>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 {[
-                  { label: 'Add Product', icon: PlusCircle, path: '/seller/products/add' },
+                  { label: 'Add Product', icon: PlusCircle, path: '/seller/products/create' },
                   { label: 'View Orders', icon: Archive, path: '/seller/orders' },
-                  { label: 'View Dashboard', icon: BarChart2, path: '/seller/dashboard' },
+                  { label: 'View Dashboard', icon: BarChart2, path: '/seller' },
                   { label: 'Shop Settings', icon: Settings, path: '/seller/settings' },
                 ].map((action) => {
                   const Icon = action.icon as React.ElementType;
@@ -488,7 +419,7 @@ export default function SellerPage() {
               </div>
             </CardContent>
           </Card>
-        </main>
+        </div>
       </div>
     </div>
   );

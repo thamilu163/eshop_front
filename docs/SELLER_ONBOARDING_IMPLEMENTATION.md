@@ -32,7 +32,7 @@ Complete seller onboarding system allowing customers to become sellers and start
 
 ```json
 {
-  "sellerType": "INDIVIDUAL" | "BUSINESS" | "FARMER" | "WHOLESALER" | "RETAILER",
+  "sellerType": "INDIVIDUAL" | "BUSINESS" | "FARMER" | "WHOLESALER" | "RETAILER" | "MANUFACTURER" | "DISTRIBUTOR" | "BRAND_OWNER",
   "displayName": "My Store",
   "businessName": "Optional Legal Name",
   "email": "seller@example.com",
@@ -150,7 +150,10 @@ public enum SellerType {
     BUSINESS,
     FARMER,
     WHOLESALER,
-    RETAILER
+    RETAILER,
+    MANUFACTURER,
+    DISTRIBUTOR,
+    BRAND_OWNER
 }
 
 public enum SellerStatus {
@@ -375,7 +378,7 @@ CREATE TABLE seller_profiles (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT chk_seller_type CHECK (seller_type IN ('INDIVIDUAL', 'BUSINESS', 'FARMER', 'WHOLESALER', 'RETAILER')),
+    CONSTRAINT chk_seller_type CHECK (seller_type IN ('INDIVIDUAL', 'BUSINESS', 'FARMER', 'WHOLESALER', 'RETAILER', 'MANUFACTURER', 'DISTRIBUTOR', 'BRAND_OWNER')),
     CONSTRAINT chk_status CHECK (status IN ('PENDING', 'ACTIVE', 'SUSPENDED', 'INACTIVE'))
 );
 

@@ -12,17 +12,20 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LogoutButton } from './logout-button';
 import { LoginButton } from './login-button';
-import { User, Settings } from 'lucide-react';
+import { User, Settings, Store, Truck } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
 
 export function UserNav() {
   const { data: session, status } = useSession();
 
-  // Check if user has SELLER role
-  const isSeller = useMemo(() => {
+  // Check roles
+  const { isSeller, isDeliveryAgent } = useMemo(() => {
     const roles = (session?.roles || []) as string[];
-    return roles.includes('SELLER');
+    return {
+      isSeller: roles.includes('SELLER'),
+      isDeliveryAgent: roles.includes('DELIVERY_AGENT'),
+    };
   }, [session]);
 
   if (status === 'loading') {
@@ -67,6 +70,35 @@ export function UserNav() {
             Profile
           </Link>
         </DropdownMenuItem>
+        
+        {!isSeller && (
+          <DropdownMenuItem asChild>
+            <Link href="/seller/onboard" className="cursor-pointer text-blue-600 dark:text-blue-400 font-medium">
+              <Store className="mr-2 h-4 w-4" />
+              Become a Seller
+            </Link>
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        
+        {isSeller && (
+          <DropdownMenuItem asChild>
+            <Link href="/seller" className="cursor-pointer text-blue-600 dark:text-blue-400 font-medium font-medium">
+              <Store className="mr-2 h-4 w-4" />
+              Seller Dashboard
+            </Link>
+          </DropdownMenuItem>
+        )}
+
+        {isDeliveryAgent && (
+          <DropdownMenuItem asChild>
+            <Link href="/delivery" className="cursor-pointer text-green-600 dark:text-green-400 font-medium">
+              <Truck className="mr-2 h-4 w-4" />
+              Delivery Dashboard
+            </Link>
+          </DropdownMenuItem>
+        )}
+
         <DropdownMenuItem asChild>
           <Link href="/settings" className="cursor-pointer">
             <Settings className="mr-2 h-4 w-4" />

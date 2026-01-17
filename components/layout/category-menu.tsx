@@ -1,14 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronRight, Smartphone, Home, Watch, Gamepad2, Shirt, Dumbbell } from 'lucide-react';
+import { ChevronDown, Smartphone, Home, Shirt, Dumbbell, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from '@/components/ui/navigation-menu';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 interface Category {
   name: string;
@@ -70,53 +69,52 @@ const categories: Category[] = [
  */
 export default function CategoryMenu() {
   return (
-    <NavigationMenu>
-      <NavigationMenuList>
-        <NavigationMenuItem>
-          <NavigationMenuTrigger className="h-9">All Categories</NavigationMenuTrigger>
-          <NavigationMenuContent>
-            <div className="w-200 p-4">
-              <div className="grid grid-cols-4 gap-4">
-                {categories.map((category) => (
-                  <div key={category.name} className="space-y-3">
-                    <Link
-                      href={category.href}
-                      className="hover:text-primary group flex items-center gap-2 text-sm font-semibold transition-colors"
-                    >
-                      {category.icon}
-                      <span>{category.name}</span>
-                      <ChevronRight className="-ml-1 h-4 w-4 opacity-0 transition-all group-hover:ml-0 group-hover:opacity-100" />
-                    </Link>
-                    {category.subcategories && (
-                      <ul className="space-y-2">
-                        {category.subcategories.map((sub) => (
-                          <li key={sub.name}>
-                            <Link
-                              href={sub.href}
-                              className="text-muted-foreground hover:text-foreground block text-sm transition-colors hover:underline"
-                            >
-                              {sub.name}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 border-t pt-4">
-                <Link
-                  href="/categories"
-                  className="text-primary text-sm font-medium hover:underline"
-                >
-                  View All Categories →
-                </Link>
-              </div>
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" className="h-9 gap-1 font-medium">
+          All Categories
+          <ChevronDown className="h-4 w-4 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-[650px] p-4">
+        <div className="grid grid-cols-4 gap-4">
+          {categories.map((category) => (
+            <div key={category.name} className="space-y-3">
+              <Link
+                href={category.href}
+                className="hover:text-primary group flex items-center gap-2 text-sm font-semibold transition-colors"
+              >
+                {category.icon}
+                <span>{category.name}</span>
+                <ChevronRight className="-ml-1 h-4 w-4 opacity-0 transition-all group-hover:ml-0 group-hover:opacity-100" />
+              </Link>
+              {category.subcategories && (
+                <ul className="space-y-2">
+                  {category.subcategories.map((sub) => (
+                    <li key={sub.name}>
+                      <Link
+                        href={sub.href}
+                        className="text-muted-foreground hover:text-foreground block text-sm transition-colors hover:underline"
+                      >
+                        {sub.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-          </NavigationMenuContent>
-        </NavigationMenuItem>
-      </NavigationMenuList>
-    </NavigationMenu>
+          ))}
+        </div>
+
+        <div className="mt-4 border-t pt-4">
+          <Link
+            href="/categories"
+            className="text-primary text-sm font-medium hover:underline"
+          >
+            View All Categories →
+          </Link>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

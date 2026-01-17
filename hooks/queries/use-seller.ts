@@ -25,6 +25,7 @@ export function useCreateStore() {
     mutationFn: (storeData) => sellerApi.createStore(storeData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.seller.store() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.seller.storeExists() });
     },
   });
 }

@@ -7,6 +7,12 @@
 import { env } from '@/env';
 import type { SellerOnboardingRequest, SellerOnboardingResponse, SellerProfile } from './types';
 
+interface ApiResponse<T> {
+  success: boolean;
+  message: string | null;
+  data: T;
+}
+
 /**
  * Register a new seller (onboard user as seller)
  */
@@ -38,7 +44,8 @@ export async function registerSeller(
     throw new Error(errorMessage);
   }
 
-  return response.json();
+  const json: ApiResponse<SellerOnboardingResponse> = await response.json();
+  return json.data || json; // Fallback to json if data is missing (legacy support)
 }
 
 /**
@@ -61,7 +68,8 @@ export async function getSellerProfile(accessToken: string): Promise<SellerProfi
     throw new Error(`Failed to fetch seller profile: ${response.status}`);
   }
 
-  return response.json();
+  const json: ApiResponse<SellerProfile> = await response.json();
+  return json.data || json; // Fallback to json if data is missing
 }
 
 /**
@@ -84,5 +92,6 @@ export async function updateSellerProfile(
     throw new Error(`Failed to update seller profile: ${response.status}`);
   }
 
-  return response.json();
+  const json: ApiResponse<SellerProfile> = await response.json();
+  return json.data || json; // Fallback to json if data is missing
 }

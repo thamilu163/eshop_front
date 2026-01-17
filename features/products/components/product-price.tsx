@@ -16,8 +16,8 @@ interface ProductPriceProps {
 export function ProductPrice({
   price,
   discountPrice,
-  currency = 'USD',
-  locale = 'en-US',
+  currency = 'INR',
+  locale = 'en-IN',
   className,
 }: ProductPriceProps) {
   const formatter = new Intl.NumberFormat(locale, {

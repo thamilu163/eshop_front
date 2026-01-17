@@ -45,7 +45,7 @@ export default function CartPage() {
   const [promoCode, setPromoCode] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
   const [savedForLater, setSavedForLater] = useState<typeof mockCartItems>([]);
-  const currency = useMemo(() => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }), []);
+  const currency = useMemo(() => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }), []);
 
   const updateQuantity = (id: number, newQuantity: number) => {
     if (newQuantity < 1) return;
@@ -349,7 +349,7 @@ export default function CartPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-green-600">✓</span>
-                      <span>Free shipping on orders $50+</span>
+                      <span>Free shipping on orders ₹50+</span>
                     </div>
                   </div>
                 </CardContent>

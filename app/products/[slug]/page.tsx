@@ -138,7 +138,7 @@ export default async function ProductDetailPage({
     offers: {
       '@type': 'Offer',
       url: `${process.env.NEXT_PUBLIC_APP_URL}/products/${params.slug}`,
-      priceCurrency: 'USD',
+      priceCurrency: 'INR',
       price: product.discountPrice || product.price,
       priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       availability: product.stockQuantity > 0

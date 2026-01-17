@@ -11,11 +11,19 @@
 import { getToken } from 'next-auth/jwt';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { logger } from '@/lib/observability/logger';
+
+/**
+ * Generate a random CSP nonce for inline scripts/styles
+ */
+function generateNonce(): string {
+  return Buffer.from(crypto.randomUUID()).toString('base64');
+}
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  console.log('🔥 [Proxy] Executing for:', pathname);
+  logger.debug('[proxy] Request received', { pathname });
 
   // CRITICAL: Skip proxy for public routes and static assets
   // This prevents redirect loops
@@ -34,9 +42,16 @@ export async function proxy(req: NextRequest) {
     pathname.match(/\.(ico|png|jpg|jpeg|svg|webp|gif|css|js|json|webmanifest)$/);
 
   if (shouldSkipProxy) {
-    console.log('[Proxy] ✅ Skipping proxy - public route or static asset');
+    logger.debug('[proxy] Skipping - public route or static asset', { pathname });
     return NextResponse.next();
   }
+
+  // Generate CSP nonce for security headers
+  const nonce = generateNonce();
+  const response = NextResponse.next();
+  
+  // Add CSP nonce to response headers (available in layout.tsx)
+  response.headers.set('x-csp-nonce', nonce);
 
   // Define public routes that don't require authentication (industry standard for ecommerce)
   const publicRoutes = [
@@ -59,18 +74,21 @@ export async function proxy(req: NextRequest) {
   // Check authentication
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
-  console.log('[Proxy] Token check:', token ? '✅ exists' : '❌ missing');
-  console.log('[Proxy] Is public route:', isPublicRoute);
+  logger.debug('[proxy] Authentication check', {
+    pathname,
+    hasToken: !!token,
+    isPublicRoute,
+  });
 
   // Allow public routes without authentication (guest browsing)
   if (isPublicRoute && !token) {
-    console.log('[Proxy] ✅ Public route - allowing unauthenticated access for guest browsing');
-    return NextResponse.next();
+    logger.debug('[proxy] Public route access granted', { pathname, authenticated: false });
+    return response;
   }
 
   // Not logged in and not a public route → redirect to login
   if (!token) {
-    console.log('[Proxy] ❌ No token, redirecting to login');
+    logger.info('[proxy] Redirecting to login', { pathname, reason: 'unauthenticated' });
     const loginUrl = new URL('/login', req.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
@@ -80,43 +98,75 @@ export async function proxy(req: NextRequest) {
   const roles = (token as any).roles || [];
   const isAdmin = roles.includes('ADMIN');
   const isSeller = roles.includes('SELLER');
+  const isDeliveryAgent = roles.includes('DELIVERY_AGENT');
 
-  console.log('[Proxy] User:', token.email);
-  console.log('[Proxy] Roles:', roles.length > 0 ? roles.join(', ') : 'none');
-  console.log('[Proxy] isAdmin:', isAdmin);
-  console.log('[Proxy] isSeller:', isSeller);
+  logger.debug('[proxy] User authenticated', {
+    pathname,
+    email: token.email,
+    roles,
+    isAdmin,
+    isSeller,
+    isDeliveryAgent,
+  });
 
   // Role-based access control for protected routes
   if (pathname.startsWith('/seller')) {
     if (!isSeller) {
-      console.log('[Proxy] ❌ Access denied - not a SELLER, redirecting to /access-denied');
+      logger.warn('[proxy] Access denied - insufficient permissions', {
+        pathname,
+        email: token.email,
+        requiredRole: 'SELLER',
+        userRoles: roles,
+      });
       return NextResponse.redirect(new URL('/access-denied', req.url));
     }
-    console.log('[Proxy] ✅ SELLER access granted');
+    logger.debug('[proxy] SELLER access granted', { pathname, email: token.email });
   }
 
   if (pathname.startsWith('/admin')) {
     if (!isAdmin) {
-      console.log('[Proxy] ❌ Access denied - not an ADMIN, redirecting to /access-denied');
+      logger.warn('[proxy] Access denied - insufficient permissions', {
+        pathname,
+        email: token.email,
+        requiredRole: 'ADMIN',
+        userRoles: roles,
+      });
       return NextResponse.redirect(new URL('/access-denied', req.url));
     }
-    console.log('[Proxy] ✅ ADMIN access granted');
+    logger.debug('[proxy] ADMIN access granted', { pathname, email: token.email });
   }
 
-  // Role-based redirects - ONLY for ADMIN and SELLER from home page
-  // Let client-side RoleBasedRedirect handle CUSTOMER redirects
+  if (pathname.startsWith('/delivery')) {
+    if (!isDeliveryAgent) {
+      logger.warn('[proxy] Access denied - insufficient permissions', {
+        pathname,
+        email: token.email,
+        requiredRole: 'DELIVERY_AGENT',
+        userRoles: roles,
+      });
+      return NextResponse.redirect(new URL('/access-denied', req.url));
+    }
+    logger.debug('[proxy] DELIVERY_AGENT access granted', { pathname, email: token.email });
+  }
+
+  // Role-based redirects - ONLY from home page
   if (isAdmin && pathname === '/') {
-    console.log('[Proxy] Redirecting ADMIN to /admin');
+    logger.info('[proxy] Role-based redirect', { email: token.email, role: 'ADMIN', target: '/admin' });
     return NextResponse.redirect(new URL('/admin', req.url));
   }
 
-  if (isSeller && !isAdmin && pathname === '/') {
-    console.log('[Proxy] Redirecting SELLER to /seller');
+  if (isSeller && pathname === '/') {
+    logger.info('[proxy] Role-based redirect', { email: token.email, role: 'SELLER', target: '/seller' });
     return NextResponse.redirect(new URL('/seller', req.url));
   }
 
-  console.log('[Proxy] ✅ Access allowed, continuing');
-  return NextResponse.next();
+  if (isDeliveryAgent && pathname === '/') {
+    logger.info('[proxy] Role-based redirect', { email: token.email, role: 'DELIVERY_AGENT', target: '/delivery' });
+    return NextResponse.redirect(new URL('/delivery', req.url));
+  }
+
+  logger.debug('[proxy] Access allowed', { pathname, email: token.email });
+  return response;
 }
 
 export const config = {

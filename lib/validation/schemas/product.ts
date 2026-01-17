@@ -1,14 +1,16 @@
 import { z } from 'zod';
 
 // Product attributes schema
+// Product attributes schema
 export const productAttributesSchema = z.object({
   type: z.string().optional(),
-  brand: z.string().min(1, 'Brand is required'),
+  brand: z.string().min(1, 'Brand is required').optional(), // made optional as it's handled by main schema too
   size: z.string().optional(),
   availableSizes: z.string().optional(),
   color: z.string().optional(),
   availableColors: z.string().optional(),
-});
+  storage: z.string().optional(), // Added for electronics
+}).catchall(z.any()); // Allow other dynamic attributes
 
 // Main product schema for form
 export const productSchema = z.object({

@@ -51,6 +51,11 @@ credentials.json
 *.tsbuildinfo
 next-env.d.ts
 
+# ESLint Reports (auto-generated, can be large)
+eslint-output.json
+eslint-report.json
+eslint-results.json
+
 # Service Worker (compiled from src/sw/service-worker.ts)
 /public/service-worker.js
 

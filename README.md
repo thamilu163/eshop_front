@@ -7,7 +7,7 @@ This is a **production-ready, enterprise-grade e-commerce frontend** built with:
 - **Next.js 16 (App Router)**
 - **React 19**
 - **TypeScript**
-- **TailwindCSS + shadcn/ui**
+- **TailwindCSS 4 + shadcn/ui**
 - **React Query (TanStack Query)**
 - **Zustand** for state management
 - **Zod** for validation
@@ -306,10 +306,10 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 ## Key Technologies
 
-- **Next.js 14**: App Router, Server Components, SSR, SSG
-- **React 18**: Concurrent rendering, Suspense
+- **Next.js 16**: App Router, Server Components, SSR, SSG
+- **React 19**: Concurrent rendering, Suspense
 - **TypeScript**: Full type safety
-- **TailwindCSS**: Utility-first CSS
+- **TailwindCSS 4**: Utility-first CSS
 - **shadcn/ui**: High-quality React components
 - **React Query**: Server state management
 - **Zustand**: Client state management

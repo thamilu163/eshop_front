@@ -12,6 +12,9 @@ export const sellerTypeEnum = z.enum([
   'FARMER',
   'WHOLESALER',
   'RETAILER',
+  'MANUFACTURER',
+  'DISTRIBUTOR',
+  'BRAND_OWNER',
 ]);
 
 export const sellerOnboardingSchema = z.object({

@@ -4,6 +4,23 @@ import { ApiError } from '@/types';
 import { env } from '@/env';
 
 // Token management utilities for Keycloak
+/**
+ * SECURITY NOTE: Token Storage
+ * 
+ * This implementation uses localStorage for token storage, which is standard for
+ * NextAuth client-side usage. While localStorage is vulnerable to XSS attacks,
+ * this is mitigated by:
+ * 
+ * 1. React's built-in XSS protection (auto-escaping)
+ * 2. Content Security Policy (CSP) headers
+ * 3. DOMPurify sanitization for user-generated content
+ * 4. Short token expiry times with automatic refresh
+ * 
+ * Alternative: httpOnly cookies (requires backend coordination for refresh flow)
+ * Trade-off: localStorage allows easier client-side token access for API calls
+ * 
+ * @see https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html#local-storage
+ */
 export const tokenStorage = {
   getAccessToken: (): string | null => {
     if (typeof window === 'undefined') return null;
@@ -44,33 +61,6 @@ export const tokenStorage = {
   },
 };
 
-// Legacy token storage (keep for backward compatibility)
-class _StorageService {
-  static isBrowser = typeof window !== 'undefined';
-  static getToken(): string | null {
-    return tokenStorage.getAccessToken();
-  }
-  static setToken(token: string, _remember: boolean = false): void {
-    if (!this.isBrowser) return;
-    // For backward compatibility, treat as access token
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('access_token', token);
-    }
-  }
-  static clearAuth(): void {
-    tokenStorage.clearTokens();
-    if (this.isBrowser) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      sessionStorage.removeItem('token');
-      sessionStorage.removeItem('user');
-    }
-  }
-}
-
-// Reference legacy storage class to avoid unused-var lint warnings (kept for compatibility)
-void _StorageService;
-
 // Environment validation
 const API_URL = env.apiBaseUrl;
 if (!API_URL) {
@@ -81,6 +71,19 @@ if (!API_URL) {
 // Backend CORS is configured to allow http://localhost:3000
 const baseURL = API_URL;
 
+/**
+ * Dual Axios Instances
+ * 
+ * We maintain two identical axios instances for backward compatibility:
+ * 
+ * 1. apiClient (named export) - Recommended for new code
+ * 2. axiosInstance (default export) - Used by legacy services
+ * 
+ * Both share the same configuration and interceptors. We keep both to avoid
+ * breaking changes throughout the codebase. Future refactoring can consolidate
+ * all usage to apiClient and remove axiosInstance.
+ */
+
 export const apiClient = axios.create({
   baseURL,
   headers: {
@@ -90,7 +93,7 @@ export const apiClient = axios.create({
   withCredentials: true,
 });
 
-// Keycloak-compatible axios instance
+// Legacy instance (default export) - same configuration as apiClient
 export const axiosInstance = axios.create({
   baseURL,
   timeout: 30000,
@@ -106,21 +109,6 @@ export const axiosInstance = axios.create({
 
 // Shared request interceptor to attach access token from NextAuth session
 const authRequestInterceptor = async (config: InternalAxiosRequestConfig) => {
-  // Skip auth for public endpoints
-  const publicEndpoints = [
-    '/api/auth/',
-    '/api/public/',
-    '/api/products',
-    '/api/categories',
-    '/api/brands',
-    '/api/tags',
-  ];
-  const isPublicEndpoint = publicEndpoints.some((endpoint) => config.url?.includes(endpoint));
-
-  if (isPublicEndpoint) {
-    return config;
-  }
-
   // Get access token from NextAuth session
   if (typeof window !== 'undefined') {
     // Client-side: use session from SessionProvider

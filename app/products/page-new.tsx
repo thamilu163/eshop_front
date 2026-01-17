@@ -84,7 +84,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             offers: {
               '@type': 'Offer',
               price: (product as any).discountPrice || (product as any).price,
-              priceCurrency: 'USD',
+              priceCurrency: 'INR',
             },
           },
       })),

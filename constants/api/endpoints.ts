@@ -124,6 +124,18 @@ export const API_ENDPOINTS = {
     MARK_READ: (id: string) => `/api/v1/notifications/${id}/read`,
     MARK_ALL_READ: '/api/v1/notifications/read-all',
   },
+
+  // Brands - Versioned (/api/v1/brands)
+  BRANDS: {
+    LIST: '/api/v1/brands',
+    DETAIL: (id: string) => `/api/v1/brands/${id}`,
+  },
+
+  // Tags - Versioned (/api/v1/tags)
+  TAGS: {
+    LIST: '/api/v1/tags',
+    DETAIL: (id: string) => `/api/v1/tags/${id}`,
+  },
 } as const;
 
 export const API_CONFIG = {

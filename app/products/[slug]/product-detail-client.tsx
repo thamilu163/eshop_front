@@ -260,7 +260,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
               <Truck className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="font-medium">Free Delivery</p>
-                <p className="text-sm text-muted-foreground">For orders over $50</p>
+                <p className="text-sm text-muted-foreground">For orders over ₹500</p>
               </div>
             </div>
             <div className="flex items-center gap-3">

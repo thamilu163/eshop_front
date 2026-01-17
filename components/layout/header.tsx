@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth-store';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { Button } from '@/components/ui/button';
@@ -89,11 +90,9 @@ export default function Header({ navItems: providedNavItems }: HeaderProps) {
   const isUserAuthenticated = isAuthenticated || status === 'authenticated';
   const currentUser = session?.user || user;
 
-  // Default public navigation (avoid exposing admin endpoints client-side)
+  // Default public navigation
   const navItems: NavItem[] = providedNavItems ?? [
-    { href: '/', label: 'Home' },
     { href: '/products', label: 'Products' },
-    { href: '#categories', label: 'Categories' },
     { href: '#deals', label: 'Deals' },
   ];
 
@@ -149,6 +148,35 @@ export default function Header({ navItems: providedNavItems }: HeaderProps) {
     <header
       className={`bg-background/95 supports-backdrop-filter:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur transition-shadow duration-300 ${scrolled ? 'shadow-lg' : 'shadow-sm'}`}
     >
+      {/* Top Utility Bar - Hidden on mobile and dashboard routes */}
+      {!pathname?.startsWith('/seller') && !pathname?.startsWith('/admin') && !pathname?.startsWith('/delivery') && (
+        <div className="bg-muted/50 hidden border-b lg:block">
+          <div className="container mx-auto flex h-9 items-center justify-between px-4 text-xs font-medium text-muted-foreground md:px-6">
+            <div className="flex items-center gap-6">
+              <Link href="/help" className="hover:text-foreground transition-colors">
+                Help & Support
+              </Link>
+              <Link href="/orders/track" className="hover:text-foreground transition-colors">
+                Track Order
+              </Link>
+            </div>
+            <div className="flex items-center gap-6">
+              {!isSeller && (
+                <Link
+                  href="/seller/onboard"
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-700 transition-colors font-semibold"
+                >
+                  Sell on eShop
+                </Link>
+              )}
+              <div className="flex items-center gap-4 border-l pl-6">
+                <span className="cursor-default">EN / INR</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <a
         href="#main-content"
         className="focus:bg-primary focus:text-primary-foreground focus:ring-ring sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded-md focus:px-4 focus:py-2 focus:ring-2 focus:ring-offset-2 focus:outline-none"
@@ -187,6 +215,31 @@ export default function Header({ navItems: providedNavItems }: HeaderProps) {
                     </Link>
                   );
                 })}
+                <div className="my-2 border-t pt-4">
+                  <Link
+                    href="/orders/track"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-muted-foreground hover:text-foreground hover:bg-accent block rounded-md px-3 py-2 text-lg font-medium transition-colors"
+                  >
+                    Track Order
+                  </Link>
+                  <Link
+                    href="/help"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-muted-foreground hover:text-foreground hover:bg-accent block rounded-md px-3 py-2 text-lg font-medium transition-colors"
+                  >
+                    Help & Support
+                  </Link>
+                  {!isSeller && (
+                    <Link
+                      href="/seller/onboard"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 block rounded-md px-3 py-2 text-lg font-semibold transition-colors"
+                    >
+                      Sell on eShop
+                    </Link>
+                  )}
+                </div>
               </nav>
             </SheetContent>
           </Sheet>
@@ -200,11 +253,13 @@ export default function Header({ navItems: providedNavItems }: HeaderProps) {
           </Link>
         </div>
 
-        {/* Center: Search (flex-grow, centered) */}
+        {/* Center: Search (flex-grow, centered) - Hide on dashboard routes */}
         <div className="flex flex-1 justify-center">
-          <div className="w-full max-w-180">
-            <SearchBar />
-          </div>
+          {!pathname?.startsWith('/seller') && !pathname?.startsWith('/admin') && !pathname?.startsWith('/delivery') && (
+            <div className="w-full max-w-180">
+              <SearchBar />
+            </div>
+          )}
         </div>
 
         {/* Right: Nav + Auth */}
@@ -219,112 +274,138 @@ export default function Header({ navItems: providedNavItems }: HeaderProps) {
             role="navigation"
             aria-label="Main navigation"
           >
-            {navItems.map((item) => {
-              const isActive =
-                item.href === '/' ? pathname === '/' : pathname?.startsWith(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={isActive ? 'page' : undefined}
-                  className={`rounded px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-all ${isActive ? 'text-foreground bg-accent' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
+            {/* Show consumer nav only on non-dashboard routes */}
+            {!pathname?.startsWith('/seller') && !pathname?.startsWith('/admin') && !pathname?.startsWith('/delivery') && (
+              <>
+                {navItems
+                  .filter((item) => {
+                    const label = item.label.toLowerCase().trim();
+                    return label !== 'wishlist' && label !== 'cart';
+                  })
+                  .map((item) => {
+                    const isActive =
+                      item.href === '/' ? pathname === '/' : pathname?.startsWith(item.href);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        aria-current={isActive ? 'page' : undefined}
+                        className={`rounded px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-all ${isActive ? 'text-foreground bg-accent' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+              </>
+            )}
+            
+            {/* Show "Back to Shop" link when on dashboard routes */}
+            {(pathname?.startsWith('/seller') || pathname?.startsWith('/admin') || pathname?.startsWith('/delivery')) && (
+               <Link
+                  href="/"
+                  className="text-muted-foreground hover:text-foreground hover:bg-accent rounded px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-all"
                 >
-                  {item.label}
+                  Back to Shop
                 </Link>
-              );
-            })}
-
-            {/* Quick Links */}
-            <Link
-              href="/orders/track"
-              className="text-muted-foreground hover:text-foreground hover:bg-accent rounded px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-all"
-            >
-              Track Order
-            </Link>
-            <Link
-              href="/help"
-              className="text-muted-foreground hover:text-foreground hover:bg-accent rounded px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-all"
-            >
-              Help
-            </Link>
+            )}
           </nav>
 
           <TooltipProvider>
             <div className="flex items-center gap-4">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleProtectedNavigate('/wishlist', DIALOG_TARGET.WISHLIST)}
-                    aria-label="Wishlist"
-                    className="relative"
-                  >
-                    <Heart className="h-5 w-5" />
-                    <WishlistBadge />
-                    <span className="sr-only">Wishlist</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Wishlist</TooltipContent>
-              </Tooltip>
+              {/* Hide Wishlist/Cart on dashboard routes */}
+              {!pathname?.startsWith('/seller') && !pathname?.startsWith('/admin') && !pathname?.startsWith('/delivery') && (
+                <>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        onClick={() => handleProtectedNavigate('/wishlist', DIALOG_TARGET.WISHLIST)}
+                        aria-label="Wishlist"
+                        className="relative flex items-center gap-2 rounded-full px-3"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Heart className="h-5 w-5" />
+                          <WishlistBadge />
+                        </span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Wishlist</TooltipContent>
+                  </Tooltip>
 
-              {isUserAuthenticated ? (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" aria-label="Cart" className="relative">
-                      <ShoppingCart className="h-5 w-5" />
-                      <CartBadge />
-                      <span className="sr-only">Cart</span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="p-0" align="end">
-                    <CartPreview />
-                  </PopoverContent>
-                </Popover>
-              ) : (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleProtectedNavigate('/cart', DIALOG_TARGET.CART)}
-                      aria-label="Cart"
-                      className="relative"
-                    >
-                      <ShoppingCart className="h-5 w-5" />
-                      <CartBadge />
-                      <span className="sr-only">Cart</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Cart</TooltipContent>
-                </Tooltip>
+                  {isUserAuthenticated ? (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          aria-label="Cart" 
+                          className="relative flex items-center gap-2 rounded-full px-3"
+                        >
+                          <span className="flex items-center gap-2">
+                            <ShoppingCart className="h-5 w-5" />
+                            <CartBadge />
+                          </span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0" align="end">
+                        <CartPreview />
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          onClick={() => handleProtectedNavigate('/cart', DIALOG_TARGET.CART)}
+                          aria-label="Cart"
+                          className="relative flex items-center gap-2 rounded-full px-3"
+                        >
+                          <span className="flex items-center gap-2">
+                            <ShoppingCart className="h-5 w-5" />
+                            <CartBadge />
+                          </span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Cart</TooltipContent>
+                    </Tooltip>
+                  )}
+                </>
               )}
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    size="icon"
-                    className="mr-2 rounded-full"
+                    size={isUserAuthenticated ? "icon" : "default"}
+                    className={cn(
+                      "mr-2 rounded-full",
+                      !isUserAuthenticated && "hover:bg-accent border px-4 font-semibold"
+                    )}
                     aria-label="Profile"
                   >
-                    <Avatar className="h-8 w-8">
-                      {isUserAuthenticated && currentUser?.name ? (
-                        <>
-                          <AvatarImage
-                            src={(currentUser?.image as string) || ''}
-                            alt={`${currentUser?.name}'s avatar`}
-                          />
+                    {isUserAuthenticated ? (
+                      <Avatar className="h-8 w-8">
+                        {currentUser?.name ? (
+                          <>
+                            <AvatarImage
+                              src={(currentUser?.image as string) || ''}
+                              alt={`${currentUser?.name}'s avatar`}
+                            />
+                            <AvatarFallback>
+                              {currentUser?.name?.charAt(0)?.toUpperCase() || 'U'}
+                            </AvatarFallback>
+                          </>
+                        ) : (
                           <AvatarFallback>
-                            {currentUser?.name?.charAt(0)?.toUpperCase() || 'U'}
+                            <User className="text-muted-foreground h-5 w-5" />
                           </AvatarFallback>
-                        </>
-                      ) : (
-                        <AvatarFallback>
-                          <User className="text-muted-foreground h-5 w-5" />
-                        </AvatarFallback>
-                      )}
-                    </Avatar>
+                        )}
+                      </Avatar>
+                    ) : (
+                      <span className="flex items-center gap-2 text-sm">
+                        <User className="h-4 w-4" />
+                        Sign In / Join
+                      </span>
+                    )}
                   </Button>
                 </DropdownMenuTrigger>
 

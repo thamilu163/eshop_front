@@ -7,6 +7,7 @@
  * Required Keycloak environment variables
  */
 const REQUIRED_ENV_VARS = [
+  // Prefer server-side vars, but allow NEXT_PUBLIC fallbacks for local/dev
   'KEYCLOAK_CLIENT_ID',
   'KEYCLOAK_ISSUER',
 ] as const;
@@ -14,9 +15,7 @@ const REQUIRED_ENV_VARS = [
 /**
  * Optional Keycloak environment variables (for confidential clients)
  */
-const OPTIONAL_ENV_VARS = [
-  'KEYCLOAK_CLIENT_SECRET',
-] as const;
+const OPTIONAL_ENV_VARS = ['KEYCLOAK_CLIENT_SECRET'] as const;
 
 type RequiredEnvVar = (typeof REQUIRED_ENV_VARS)[number];
 type OptionalEnvVar = (typeof OPTIONAL_ENV_VARS)[number];
@@ -41,7 +40,25 @@ export function validateKeycloakConfig(): KeycloakConfig {
 
   // Check required vars
   for (const envVar of REQUIRED_ENV_VARS) {
-    const value = process.env[envVar];
+    // Support common fallbacks used in this repo
+    let value = process.env[envVar];
+    if (!value) {
+      if (envVar === 'KEYCLOAK_CLIENT_ID') {
+        value = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID || process.env.KEYCLOAK_CLIENT_ID;
+      }
+      if (envVar === 'KEYCLOAK_ISSUER') {
+        value =
+          process.env.KEYCLOAK_ISSUER ||
+          process.env.KEYCLOAK_ISSUER_URI ||
+          process.env.NEXT_PUBLIC_KEYCLOAK_ISSUER_URI ||
+          process.env.NEXT_PUBLIC_KEYCLOAK_URL;
+        // If only base Keycloak URL present, try to derive issuer using realm
+        if (value && !/realms\//.test(value)) {
+          const realm = process.env.KEYCLOAK_REALM || process.env.NEXT_PUBLIC_KEYCLOAK_REALM;
+          if (realm) value = `${value.replace(/\/$/, '')}/realms/${realm}`;
+        }
+      }
+    }
     if (!value || value.trim() === '') {
       missingVars.push(envVar);
     } else {
@@ -67,7 +84,7 @@ export function validateKeycloakConfig(): KeycloakConfig {
     const varList = missingVars.join(', ');
     throw new Error(
       `Missing required environment variables for Keycloak authentication: ${varList}\n` +
-      `Please ensure these variables are set in your .env.local file.`
+        `Please ensure these variables are set in your .env.local file.`
     );
   }
 

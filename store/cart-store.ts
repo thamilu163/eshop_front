@@ -235,11 +235,13 @@ export const selectCartItemCount = (state: CartState): number =>
 export const selectCartTotal = (state: CartState): number => 
   state.cart?.totalAmount ?? 0;
 
+const EMPTY_ITEMS: CartItemDTO[] = [];
+
 /**
  * Select cart items
  */
 export const selectCartItems = (state: CartState): CartItemDTO[] => 
-  state.cart?.items ?? [];
+  state.cart?.items ?? EMPTY_ITEMS;
 
 /**
  * Select cart loading state

@@ -108,7 +108,10 @@ export default function SellerProductsPage() {
             className="px-3 py-2 border rounded-md"
           >
             <option value="">All categories</option>
-            {categoriesQuery.data?.map((c: any) => (
+            {(Array.isArray(categoriesQuery.data) 
+              ? categoriesQuery.data 
+              : (categoriesQuery.data as any)?.categories ?? (categoriesQuery.data as any)?.items ?? []
+            ).map((c: any) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
@@ -118,57 +121,83 @@ export default function SellerProductsPage() {
         </div>
       </div>
 
-      {productsQuery.isLoading && <div>Loading products…</div>}
-      {productsQuery.isError && <div className="text-red-600">Error loading products</div>}
-
-      {!productsQuery.isLoading && products.length === 0 && (
-        <div className="text-muted-foreground">No products found.</div>
+      {productsQuery.isLoading && (
+        <div className="flex items-center justify-center py-8">
+           <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
+           <span className="ml-2 text-gray-600">Loading products...</span>
+        </div>
       )}
 
-      {products.length > 0 && (
-        <div className="overflow-x-auto">
+      {productsQuery.isError && (
+        <div className="rounded border border-red-200 bg-red-50 p-4 text-red-700">
+          <p className="font-semibold">Error loading products</p>
+          <p className="text-sm">{(productsQuery.error as any)?.message || 'Please try again later.'}</p>
+        </div>
+      )}
+
+      {!productsQuery.isLoading && !productsQuery.isError && products.length === 0 && (
+         <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-10 text-center">
+            <h3 className="text-lg font-semibold">No products found</h3>
+            <p className="text-muted-foreground mt-1 mb-4">Get started by creating your first product listing.</p>
+             <Link href="/seller/products/create">
+                <Button>Add New Product</Button>
+             </Link>
+         </div>
+      )}
+
+      {!productsQuery.isLoading && !productsQuery.isError && products.length > 0 && (
+        <div className="overflow-x-auto rounded-md border">
           <table className="w-full table-auto border-collapse">
-            <thead>
+            <thead className="bg-muted/50">
               <tr className="text-left border-b">
-                <th className="py-2">#</th>
-                <th className="py-2">Title</th>
-                <th className="py-2">Price</th>
-                <th className="py-2">Stock</th>
-                <th className="py-2">Category</th>
+                <th className="px-4 py-3 font-medium">#</th>
+                <th className="px-4 py-3 font-medium">Title</th>
+                <th className="px-4 py-3 font-medium">Price</th>
+                <th className="px-4 py-3 font-medium">Stock</th>
+                <th className="px-4 py-3 font-medium">Category</th>
+                <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {products.map((p: ProductDTO, idx: number) => (
-                <tr key={p.id} className="border-b">
-                  <td className="py-2">{((productsQuery.data?.number ?? 1) - 1) * size + idx + 1}</td>
-                  <td className="py-2">
+                <tr key={p.id} className="border-b transition-colors hover:bg-muted/20">
+                  <td className="px-4 py-3">{((productsQuery.data?.number ?? 1) - 1) * size + idx + 1}</td>
+                  <td className="px-4 py-3">
                     {editingId === p.id ? (
-                      <input className="border px-2 py-1" value={editValues.name ?? p.name} onChange={(e) => setEditValues(ev => ({ ...ev, name: e.target.value }))} />
+                      <input className="border rounded px-2 py-1 w-full" value={editValues.name ?? p.name} onChange={(e) => setEditValues(ev => ({ ...ev, name: e.target.value }))} autoFocus />
                     ) : (
-                      p.name
+                      <span className="font-medium">{p.name}</span>
                     )}
                   </td>
-                  <td className="py-2">
+                  <td className="px-4 py-3">
                     {editingId === p.id ? (
-                      <input className="border px-2 py-1 w-28" type="number" value={editValues.price ?? p.price} onChange={(e) => setEditValues(ev => ({ ...ev, price: Number(e.target.value) }))} />
+                      <input className="border rounded px-2 py-1 w-24" type="number" value={editValues.price ?? p.price} onChange={(e) => setEditValues(ev => ({ ...ev, price: Number(e.target.value) }))} />
                     ) : (
-                      `₹${p.price}`
+                      `₹${p.price.toFixed(2)}`
                     )}
                   </td>
-                  <td className="py-2">{p.stockQuantity ?? '—'}</td>
-                  <td className="py-2">{p.category?.name ?? '—'}</td>
-                  <td className="py-2">
+                  <td className="px-4 py-3">
+                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                        (p.stockQuantity ?? 0) > 0 
+                          ? 'bg-green-50 text-green-700 ring-1 ring-green-600/20' 
+                          : 'bg-red-50 text-red-700 ring-1 ring-red-600/20'
+                      }`}>
+                      {p.stockQuantity ?? 0 > 0 ? 'In Stock' : 'Out of Stock'} ({p.stockQuantity ?? 0})
+                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">{p.category?.name ?? '—'}</td>
+                  <td className="px-4 py-3 text-right">
                     {editingId === p.id ? (
-                      <div className="flex gap-2">
-                        <button className="px-2 py-1 bg-green-600 text-white rounded" onClick={() => {
+                      <div className="flex justify-end gap-2">
+                         <Button size="sm" variant="ghost" onClick={() => { setEditingId(null); setEditValues({}); }}>Cancel</Button>
+                         <Button size="sm" onClick={() => {
                           updateMut.mutateAsync({ id: p.id, payload: { name: editValues.name, price: editValues.price } }).then(() => setEditingId(null))
-                        }}>Save</button>
-                        <button className="px-2 py-1 bg-gray-300 rounded" onClick={() => { setEditingId(null); setEditValues({}); }}>Cancel</button>
+                        }}>Save</Button>
                       </div>
                     ) : (
-                      <div className="flex gap-2">
-                        <button className="px-2 py-1 bg-blue-600 text-white rounded" onClick={() => { setEditingId(p.id); setEditValues({ name: p.name, price: p.price }); }}>Edit</button>
-                        <button className="px-2 py-1 bg-red-600 text-white rounded" onClick={() => { setConfirmDeleteId(p.id); }}>Delete</button>
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="outline" onClick={() => { setEditingId(p.id); setEditValues({ name: p.name, price: p.price }); }}>Edit</Button>
+                        <Button size="sm" variant="destructive" onClick={() => { setConfirmDeleteId(p.id); }}>Delete</Button>
                       </div>
                     )}
                   </td>

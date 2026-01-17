@@ -1,6 +1,7 @@
 "use client";
 
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import { UserRole } from '@/types';
@@ -67,13 +68,13 @@ function NavLink({ href, children, Icon, pathname }: { href: string; children: R
 }
 
 export default function Sidebar() {
-  // subscribe to user and roles with separate selectors to avoid returning
-  // a new object/array from the selector which can cause Zustand snapshot warnings
-  const roles = useAuthStore((s) => s.user?.roles);
-  const user = useAuthStore((s) => s.user);
+  const { data: session, status } = useSession(); // Use next-auth session directly
   const pathname = usePathname();
 
-  const isLoading = user === undefined;
+  // Roles from session are more reliable in this context
+  const roles = (session?.roles || []) as string[];
+  const hasRoles = roles.length > 0;
+  const isLoading = status === 'loading';
 
   // If auth is still resolving, show skeleton to avoid layout shift
   if (isLoading) {
@@ -89,8 +90,6 @@ export default function Sidebar() {
     );
   }
 
-  const hasRoles = (roles ?? []).length > 0;
-
   return (
     <aside className="hidden lg:flex lg:flex-col w-60 border-r bg-background">
       <nav aria-label="Main sidebar navigation" className="flex-1 overflow-y-auto p-4 space-y-4 text-sm">
@@ -104,7 +103,7 @@ export default function Sidebar() {
         {hasRoles ? (
           Object.values(UserRole).map((role) => {
             // only render sections the user has
-            if (!roles?.includes(role)) return null;
+            if (!roles.includes(role)) return null;
             const cfg = NAV_CONFIG[role];
             if (!cfg) return null;
 

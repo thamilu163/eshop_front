@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Example Usage: ProductCard and Related Components
  * 
@@ -58,8 +60,8 @@ export function FeaturedProduct({ product }: { product: ProductDTO }) {
       <ProductPrice
         price={product.price}
         discountPrice={product.discountPrice}
-        currency="USD"
-        locale="en-US"
+        currency="INR"
+        locale="en-IN"
         className="mb-4"
       />
       

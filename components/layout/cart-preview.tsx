@@ -85,7 +85,7 @@ export default function CartPreview() {
         </div>
 
         <p className="text-muted-foreground mt-2 text-center text-xs">
-          Free shipping on orders over $50
+          Free shipping on orders over ₹500
         </p>
       </div>
     </div>

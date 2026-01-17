@@ -5,7 +5,7 @@ import { SettingsState } from '@/types/settings';
 const defaultSettings: SettingsState = {
   theme: 'system',
   language: 'en',
-  currency: 'USD',
+  currency: 'INR',
   fontSize: 16,
   notifications: {
     email: true,

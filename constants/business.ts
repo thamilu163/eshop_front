@@ -45,8 +45,8 @@ export const PAGINATION = {
 export const PRICE_RANGE = {
   MIN: 0,
   MAX: 1000000,
-  CURRENCY: 'USD',
-  CURRENCY_SYMBOL: '$',
+  CURRENCY: 'INR',
+  CURRENCY_SYMBOL: '₹',
 } as const;
 
 export const RATING = {

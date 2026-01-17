@@ -10,7 +10,7 @@
 ### 1. Core Types & Validation
 
 - [x] `features/seller/types.ts` - TypeScript interfaces for seller domain
-  - SellerType enum (INDIVIDUAL, BUSINESS, FARMER, WHOLESALER, RETAILER)
+  - SellerType enum (INDIVIDUAL, BUSINESS, FARMER, WHOLESALER, RETAILER, MANUFACTURER, DISTRIBUTOR, BRAND_OWNER)
   - SellerProfile interface
   - API request/response types
 - [x] `features/seller/schemas.ts` - Zod validation schemas
@@ -87,7 +87,7 @@ Content-Type: application/json
 
 Request Body:
 {
-  "sellerType": "INDIVIDUAL" | "BUSINESS" | "FARMER" | "WHOLESALER" | "RETAILER",
+  "sellerType": "INDIVIDUAL" | "BUSINESS" | "FARMER" | "WHOLESALER" | "RETAILER" | "MANUFACTURER" | "DISTRIBUTOR" | "BRAND_OWNER",
   "displayName": "My Store",
   "businessName": "Optional Legal Name",
   "email": "seller@example.com",
@@ -190,7 +190,7 @@ Response (404 Not Found):
 CREATE TABLE seller_profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id BIGINT NOT NULL UNIQUE,
-    seller_type VARCHAR(20) NOT NULL CHECK (seller_type IN ('INDIVIDUAL', 'BUSINESS', 'FARMER', 'WHOLESALER', 'RETAILER')),
+    seller_type VARCHAR(20) NOT NULL CHECK (seller_type IN ('INDIVIDUAL', 'BUSINESS', 'FARMER', 'WHOLESALER', 'RETAILER', 'MANUFACTURER', 'DISTRIBUTOR', 'BRAND_OWNER')),
     display_name VARCHAR(100) NOT NULL,
     business_name VARCHAR(200),
     email VARCHAR(255) NOT NULL,

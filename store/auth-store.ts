@@ -1,13 +1,9 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import { UserDTO } from '@/types';
 import { UserInfo, AuthState as AuthStateType } from '@/types/auth.types';
 import { tokenStorage } from '@/lib/axios';
 
 interface AuthState extends AuthStateType {
-  // Legacy compatibility
-  token?: string | null;
-  
   // Actions
   setUser: (user: UserInfo | null) => void;
   setTokens: (accessToken: string, refreshToken: string) => void;
@@ -15,9 +11,6 @@ interface AuthState extends AuthStateType {
   setLoading: (isLoading: boolean) => void;
   logout: () => void;
   reset: () => void;
-  
-  // Legacy actions for compatibility
-  setUserLegacy: (user: UserDTO, token?: string | null) => void;
   initialize: () => void;
 }
 
@@ -34,7 +27,6 @@ export const useAuthStore = create<AuthState>()(
     persist(
       (set, get) => ({
         ...initialState,
-        token: null,
         
           setUser: (user) => {
             const cur = get().user;
@@ -54,7 +46,7 @@ export const useAuthStore = create<AuthState>()(
           }
           tokenStorage.setTokens(accessToken, refreshToken);
           set(
-            { accessToken, refreshToken, isAuthenticated: true, token: accessToken },
+            { accessToken, refreshToken, isAuthenticated: true },
             false,
             'setTokens'
           );
@@ -80,7 +72,6 @@ export const useAuthStore = create<AuthState>()(
               accessToken: null,
               refreshToken: null,
               isAuthenticated: false,
-              token: null,
             },
             false,
             'logout'
@@ -89,37 +80,7 @@ export const useAuthStore = create<AuthState>()(
         
         reset: () => {
           tokenStorage.clearTokens();
-          set({ ...initialState, token: null }, false, 'reset');
-        },
-        
-        // Legacy compatibility methods
-        setUserLegacy: (user, token) => {
-          const mappedUser: UserInfo = {
-            sub: String(user.id),
-            preferred_username: user.username,
-            username: user.username,
-            email: user.email,
-            email_verified: !!user.emailVerified,
-            given_name: user.firstName,
-            family_name: user.lastName,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            role: user.role,
-            roles: user.role ? [String(user.role)] : undefined,
-            phone: user.phone,
-            address: user.address,
-            shopName: user.shopName || user.businessName,
-            // preserve other backend fields if present
-            active: user.active,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
-          } as UserInfo;
-
-          const cur = get().user;
-          try {
-            if (JSON.stringify(cur) === JSON.stringify(mappedUser)) return;
-          } catch {}
-          set({ user: mappedUser, isAuthenticated: true, token: token ?? null });
+          set({ ...initialState }, false, 'reset');
         },
         
         initialize: () => {
@@ -128,7 +89,6 @@ export const useAuthStore = create<AuthState>()(
           set({ 
             isAuthenticated: !!accessToken && !tokenStorage.isTokenExpired(),
             isLoading: false,
-            token: accessToken,
             accessToken,
           });
         },

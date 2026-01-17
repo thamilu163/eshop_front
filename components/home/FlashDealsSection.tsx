@@ -29,7 +29,7 @@ interface FlashDeal {
 /**
  * Format price with locale-aware currency display
  */
-const formatPrice = (price: number, locale = 'en-US', currency = 'USD') =>
+const formatPrice = (price: number, locale = 'en-IN', currency = 'INR') =>
   new Intl.NumberFormat(locale, { style: 'currency', currency }).format(price);
 
 /**

@@ -1,5 +1,6 @@
 import apiClient from '@/lib/axios';
 import { StoreDTO, ProductDTO, PageResponse, PageRequest } from '@/types';
+import { StoreCreateRequest } from '../types';
 
 // Time Complexity: O(1) - single HTTP request
 // Space Complexity: O(n) where n is size of response data
@@ -10,13 +11,32 @@ export const sellerApi = {
   },
 
   checkStoreExists: async (): Promise<boolean> => {
-    const { data } = await apiClient.get<boolean>('/api/v1/seller/store/exists');
-    return data;
+    try {
+      const { data } = await apiClient.get<boolean>('/api/v1/seller/store/exists');
+      return data;
+    } catch (error: any) {
+      if (error?.status === 404 || error?.status === 403) {
+        return false;
+      }
+      throw error;
+    }
   },
 
-  createStore: async (storeData: Partial<StoreDTO>): Promise<StoreDTO> => {
-    const { data } = await apiClient.post<StoreDTO>('/api/v1/seller/store', storeData);
-    return data;
+  createStore: async (storeData: StoreCreateRequest): Promise<StoreDTO> => {
+    console.log('🔍 [createStore] Request payload:', JSON.stringify(storeData, null, 2));
+    
+    try {
+      const { data } = await apiClient.post<StoreDTO>('/api/v1/seller/store', storeData);
+      console.log('✅ [createStore] Success:', data);
+      return data;
+    } catch (error: any) {
+      console.error('❌ [createStore] Failed');
+      console.error('📦 Payload sent:', storeData);
+      console.error('🚨 Backend error:', error.response?.data);
+      console.error('📊 Status:', error.response?.status);
+      console.error('📋 Headers:', error.response?.headers);
+      throw error;
+    }
   },
 
   updateStore: async (storeData: Partial<StoreDTO>): Promise<StoreDTO> => {

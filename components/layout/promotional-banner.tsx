@@ -18,7 +18,7 @@ export default function PromotionalBanner() {
         <div className="flex items-center justify-center gap-6 text-sm">
           <div className="hidden items-center gap-2 md:flex">
             <Truck className="h-4 w-4" />
-            <span className="font-medium">Free Shipping Over $50</span>
+            <span className="font-medium">Free Shipping Over ₹500</span>
           </div>
 
           <div className="flex items-center gap-2">

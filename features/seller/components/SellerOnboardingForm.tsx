@@ -26,14 +26,18 @@ import {
 } from '@/components/ui/select';
 import { Store, Loader2, CheckCircle2 } from 'lucide-react';
 import { sellerOnboardingSchema, type SellerOnboardingFormData } from '../schemas';
-import { registerSeller } from '../api';
+import { useCreateStore } from '@/hooks/queries/use-seller';
+import { registerSeller, getSellerProfile } from '../api';
+import { sellerApi } from '../api/seller-api';
 import { toast } from 'sonner';
+import type { StoreCreateRequest } from '../types';
 
 export function SellerOnboardingForm() {
   const { data: session } = useSession();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const createStore = useCreateStore();
 
   const {
     register,
@@ -53,6 +57,7 @@ export function SellerOnboardingForm() {
 
   const onSubmit = async (data: SellerOnboardingFormData) => {
     const accessToken = (session as any)?.accessToken;
+
     if (!accessToken) {
       toast.error('Authentication required', {
         description: 'Please log in to continue',
@@ -63,24 +68,60 @@ export function SellerOnboardingForm() {
     setIsSubmitting(true);
 
     try {
-      const response = await registerSeller(data, accessToken);
+      // CORRECT FLOW:
+      // 1. Check seller profile FIRST
+      // 2. Register ONLY if profile doesn't exist
+      // 3. Check store existence
+      // 4. Create store ONLY if it doesn't exist
 
-      console.log('[Onboarding] Success:', response);
+      console.log('[Onboarding] Starting flow for:', data.email);
+
+      // Step 1: Check if seller profile exists
+      const existingSeller = await getSellerProfile(accessToken);
+
+      // Step 2: Register seller ONLY if no profile exists
+      if (!existingSeller) {
+        console.log('[Onboarding] No profile found, registering seller...');
+        await registerSeller(data, accessToken);
+        console.log('[Onboarding] Seller registered successfully');
+      } else {
+        console.log('[Onboarding] Seller profile already exists, skipping registration');
+      }
+
+      // Step 3: Check if store exists
+      const storeExists = await sellerApi.checkStoreExists();
+      console.log('[Onboarding] Store exists:', storeExists);
+
+      // Step 4: Create store ONLY if it doesn't exist
+      if (!storeExists) {
+        const storeRequest: StoreCreateRequest = {
+          storeName: data.displayName,
+          description: data.description || `${data.displayName} - Online Store`,
+          ...(data.email && { email: data.email }),
+          ...(data.phone && { phone: data.phone }),
+        };
+
+        console.log('[Onboarding] Creating store:', storeRequest);
+        await createStore.mutateAsync(storeRequest);
+        console.log('[Onboarding] Store created successfully');
+      } else {
+        console.log('[Onboarding] Store already exists, skipping creation');
+      }
+
       setSuccess(true);
 
       toast.success('Welcome to selling!', {
-        description: 'Your seller account has been created successfully.',
+        description: 'Your seller account is ready.',
       });
 
-      // Redirect to seller dashboard after 2 seconds
       setTimeout(() => {
         router.push('/seller');
         router.refresh();
-      }, 2000);
+      }, 1500);
     } catch (error: any) {
       console.error('[Onboarding] Error:', error);
-      toast.error('Failed to create seller profile', {
-        description: error.message || 'Please try again or contact support.',
+      toast.error('Onboarding failed', {
+        description: error.message || 'Please try again',
       });
       setIsSubmitting(false);
     }
@@ -134,7 +175,7 @@ export function SellerOnboardingForm() {
               <SelectContent>
                 <SelectItem value="INDIVIDUAL">Individual Seller</SelectItem>
                 <SelectItem value="BUSINESS">Business</SelectItem>
-                <SelectItem value="FARMER">Farmer/Producer</SelectItem>
+                <SelectItem value="FARMER">Farmer</SelectItem>
                 <SelectItem value="WHOLESALER">Wholesaler</SelectItem>
                 <SelectItem value="RETAILER">Retailer</SelectItem>
               </SelectContent>
