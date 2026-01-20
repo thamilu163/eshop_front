@@ -9,6 +9,8 @@
  * - Graceful degradation
  */
 
+import { logger } from '@/lib/observability/logger';
+
 // ==================== REQUEST DEDUPLICATION ====================
 
 interface PendingRequest {
@@ -30,7 +32,7 @@ export function deduplicateRequest<T>(
   const existing = pendingRequests.get(key);
   
   if (existing) {
-    console.log(`[Request Deduplication] Using existing request for key: ${key}`);
+    logger.debug(`[Request Deduplication] Using existing request for key: ${key}`);
     return existing.promise as Promise<T>;
   }
 
@@ -72,7 +74,7 @@ class ApiCache {
       return null;
     }
 
-    console.log(`[Cache Hit] ${key} (age: ${age}ms, ttl: ${entry.ttl}ms)`);
+    logger.debug(`[Cache Hit] ${key} (age: ${age}ms, ttl: ${entry.ttl}ms)`);
     return entry.data as T;
   }
 
@@ -90,13 +92,13 @@ class ApiCache {
       ttl,
     });
 
-    console.log(`[Cache Set] ${key} (ttl: ${ttl}ms)`);
+    logger.debug(`[Cache Set] ${key} (ttl: ${ttl}ms)`);
   }
 
   invalidate(pattern?: string): void {
     if (!pattern) {
       this.cache.clear();
-      console.log('[Cache] Cleared all entries');
+      logger.debug('[Cache] Cleared all entries');
       return;
     }
 
@@ -110,12 +112,12 @@ class ApiCache {
       }
     }
 
-    console.log(`[Cache] Invalidated ${count} entries matching: ${pattern}`);
+    logger.debug(`[Cache] Invalidated ${count} entries matching: ${pattern}`);
   }
 
   clear(): void {
     this.cache.clear();
-    console.log('[Cache] Cleared');
+    logger.debug('[Cache] Cleared');
   }
 }
 
@@ -150,13 +152,14 @@ export async function withCache<T>(
 
 // ==================== REQUEST BATCHING ====================
 
-interface BatchedRequest<T, R> {
-  item: T;
-  resolve: (value: R) => void;
-  reject: (error: unknown) => void;
-}
+// interface BatchedRequest<T, R> {
+//   item: T;
+//   resolve: (value: R) => void;
+//   reject: (error: unknown) => void;
+// }
 
  
+/*
 class RequestBatcher<T, R> {
   private queue: BatchedRequest<T, R>[] = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
@@ -196,6 +199,7 @@ class RequestBatcher<T, R> {
     }
   }
 }
+*/
 
 // Example: Batch product fetches
 // const productBatcher = new RequestBatcher(
@@ -227,7 +231,7 @@ class PerformanceMonitor {
 
     // Log slow requests in development
     if (process.env.NODE_ENV === 'development' && metric.duration > 1000) {
-      console.warn(`[Slow Request] ${metric.method} ${metric.endpoint} took ${metric.duration}ms`);
+      logger.warn(`[Slow Request] ${metric.method} ${metric.endpoint} took ${metric.duration}ms`);
     }
   }
 
@@ -317,7 +321,7 @@ export async function withFallback<T>(
     return await requestFn();
   } catch (error) {
     if (options.logError !== false) {
-      console.error('[Graceful Degradation] Request failed, using fallback:', error);
+      logger.error('[Graceful Degradation] Request failed, using fallback:', { error });
     }
     return fallbackValue;
   }
@@ -408,7 +412,7 @@ export async function retryWithBackoff<T>(
 
       if (attempt < maxRetries) {
         const delay = baseDelay * Math.pow(2, attempt);
-        console.log(`[Retry] Attempt ${attempt + 1}/${maxRetries} failed, waiting ${delay}ms`);
+        logger.warn(`[Retry] Attempt ${attempt + 1}/${maxRetries} failed, waiting ${delay}ms`);
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
@@ -435,7 +439,7 @@ export function prefetch<T>(
 
   // Prefetch in background
   withCache(key, requestFn, ttl).catch((error) => {
-    console.error('[Prefetch Failed]', key, error);
+    logger.error('[Prefetch Failed]', { key, error });
   });
 }
 

@@ -23,24 +23,33 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Eye,  MoreHorizontal, Package, Truck, CheckCircle, XCircle, Clock } from 'lucide-react';
-import { OrderDTO, OrderStatus, PaymentStatus } from '@/types';
+import { Eye,  MoreHorizontal, Package, Truck } from 'lucide-react';
+import { OrderStatus, PaymentStatus } from '@/types';
+import { logger } from '@/lib/observability/logger';
+
+// Interface matching Backend OrderResponse
+interface SellerOrder {
+  id: number;
+  orderNumber: string;
+  customerId: number;
+  customerName: string;
+  customerEmail: string;
+  items: any[]; // define stricter if needed
+  totalAmount: number;
+  shippingAddress: string;
+  orderStatus: OrderStatus;
+  paymentStatus: PaymentStatus;
+  createdAt: string;
+}
 
 // Mock data for development when API is not ready
-const MOCK_ORDERS: OrderDTO[] = [
+const MOCK_ORDERS: SellerOrder[] = [
   {
     id: 1,
     orderNumber: 'ORD-2024-001',
-    customer: {
-      id: 101,
-      username: 'john_doe',
-      email: 'john@example.com',
-      firstName: 'John',
-      lastName: 'Doe',
-      role: 'CUSTOMER' as any,
-      active: true,
-      createdAt: new Date().toISOString()
-    },
+    customerId: 101,
+    customerName: 'John Doe',
+    customerEmail: 'john@example.com',
     items: [],
     totalAmount: 156.00,
     shippingAddress: '123 Main St, Anytown, USA',
@@ -51,16 +60,9 @@ const MOCK_ORDERS: OrderDTO[] = [
   {
     id: 2,
     orderNumber: 'ORD-2024-002',
-    customer: {
-      id: 102,
-      username: 'jane_smith',
-      email: 'jane@example.com',
-      firstName: 'Jane',
-      lastName: 'Smith',
-      role: 'CUSTOMER' as any,
-      active: true,
-      createdAt: new Date().toISOString()
-    },
+    customerId: 102,
+    customerName: 'Jane Smith',
+    customerEmail: 'jane@example.com',
     items: [],
     totalAmount: 89.50,
     shippingAddress: '456 Oak Ave, Somewhere, CA',
@@ -71,16 +73,9 @@ const MOCK_ORDERS: OrderDTO[] = [
   {
     id: 3,
     orderNumber: 'ORD-2024-003',
-    customer: {
-      id: 103,
-      username: 'bob_jones',
-      email: 'bob@example.com',
-      firstName: 'Bob',
-      lastName: 'Jones',
-      role: 'CUSTOMER' as any,
-      active: true,
-      createdAt: new Date().toISOString()
-    },
+    customerId: 103,
+    customerName: 'Bob Jones',
+    customerEmail: 'bob@example.com',
     items: [],
     totalAmount: 210.00,
     shippingAddress: '789 Pine Ln, Nowhere, NY',
@@ -93,9 +88,8 @@ const MOCK_ORDERS: OrderDTO[] = [
 export default function SellerOrdersPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [orders, setOrders] = useState<OrderDTO[]>([]);
+  const [orders, setOrders] = useState<SellerOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -116,10 +110,11 @@ export default function SellerOrdersPage() {
 
   const fetchOrders = async () => {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const accessToken = (session as any)?.accessToken;
       if (!accessToken) {
         // Fallback to mock data if no real backend connection or for demo
-        console.log('Using mock data for orders');
+        logger.debug('Using mock data for orders');
         setOrders(MOCK_ORDERS);
         setLoading(false);
         return;
@@ -134,14 +129,29 @@ export default function SellerOrdersPage() {
       });
 
       if (!res.ok) {
-        console.warn(`[Seller/Orders] API returned ${res.status} ${res.statusText}. Using mock data.`);
+        logger.warn(`[Seller/Orders] API returned ${res.status} ${res.statusText}. Using mock data.`);
         setOrders(MOCK_ORDERS);
       } else {
-        const data = await res.json();
-        setOrders(data.data || data); // Adjust based on actual API response structure
+        const result = await res.json();
+        // result = ApiResponse { success, data: PageResponse, ... }
+        // result.data = PageResponse { data: List<OrderResponse>, ... }
+        // So we need result.data.data
+        if (result.success && result.data && Array.isArray(result.data.data)) {
+           setOrders(result.data.data);
+        } else if (result.content && Array.isArray(result.content)) {
+            // Fallback for direct PageImpl
+            setOrders(result.content);
+        } else if (result.data && Array.isArray(result.data)) {
+             // Fallback if PageResponse is skipped
+             setOrders(result.data);
+        } else {
+             logger.warn('[Seller/Orders] Unexpected response structure:', result);
+             setOrders([]);
+        }
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      console.warn('[Seller/Orders] Fetch failed, using mock data:', err);
+      logger.warn('[Seller/Orders] Fetch failed, using mock data:', { error: err });
       setOrders(MOCK_ORDERS);
     } finally {
       setLoading(false);
@@ -149,18 +159,27 @@ export default function SellerOrdersPage() {
   };
 
   const getStatusBadge = (status: OrderStatus) => {
-    switch (status) {
+    // Helper to safely handle potential string values that might not strictly match enum at runtime
+    const normalizedStatus = status as string;
+    
+    switch (normalizedStatus) {
       case OrderStatus.PLACED:
+      case 'PLACED':
         return <Badge variant="secondary">Placed</Badge>;
       case OrderStatus.CONFIRMED:
+      case 'CONFIRMED':
         return <Badge className="bg-blue-500">Confirmed</Badge>;
       case OrderStatus.PACKED:
+      case 'PACKED':
         return <Badge className="bg-purple-500">Packed</Badge>;
       case OrderStatus.SHIPPED:
+      case 'SHIPPED':
         return <Badge className="bg-orange-500">Shipped</Badge>;
       case OrderStatus.DELIVERED:
+      case 'DELIVERED':
         return <Badge className="bg-green-500">Delivered</Badge>;
       case OrderStatus.CANCELLED:
+      case 'CANCELLED':
         return <Badge variant="destructive">Cancelled</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
@@ -217,8 +236,8 @@ export default function SellerOrdersPage() {
                         <TableCell className="font-medium">{order.orderNumber}</TableCell>
                         <TableCell>
                           <div className="flex flex-col">
-                            <span>{order.customer.firstName} {order.customer.lastName}</span>
-                            <span className="text-xs text-muted-foreground">{order.customer.email}</span>
+                            <span>{order.customerName}</span>
+                            <span className="text-xs text-muted-foreground">{order.customerEmail}</span>
                           </div>
                         </TableCell>
                         <TableCell>

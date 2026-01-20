@@ -23,8 +23,10 @@ describe('authApi normalization', () => {
       },
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockedClient.post.mockResolvedValue({ data: wrapped } as any);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await authApi.register({} as any);
 
     expect(result.token).toBe('abc123');
@@ -47,8 +49,10 @@ describe('authApi normalization', () => {
       },
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockedClient.post.mockResolvedValue({ data: simple } as any);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await authApi.register({} as any);
 
     expect(result.token).toBe('xyz789');

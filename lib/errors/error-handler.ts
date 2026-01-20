@@ -5,6 +5,7 @@
 
 import { AppError } from './custom-errors';
 import { toast } from 'sonner';
+import { logger } from '@/lib/observability/logger';
 
 export interface ErrorResponse {
   message: string;
@@ -20,6 +21,7 @@ export function handleError(error: unknown): ErrorResponse {
       message: error.message,
       code: error.code,
       statusCode: error.statusCode,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fields: 'fields' in error ? (error as any).fields : undefined,
     };
   }
@@ -63,7 +65,7 @@ export function displayError(error: unknown): void {
   
   // Log error for debugging (only in development)
   if (process.env.NODE_ENV === 'development') {
-    console.error('Error:', errorResponse);
+    logger.error('Error:', { errorResponse });
   }
 }
 
@@ -82,6 +84,7 @@ function getUserFriendlyMessage(error: ErrorResponse): string {
   return messages[error.code] || error.message || 'An error occurred';
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isAxiosError(error: any): error is { response?: { status: number; data: any }; message: string } {
   return error && error.isAxiosError === true;
 }

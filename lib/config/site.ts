@@ -109,7 +109,7 @@ export const navigationConfig = {
     { title: 'Contact', href: '/contact' },
   ],
   customer: [
-    { title: 'Dashboard', href: '/dashboard' },
+    { title: 'Dashboard', href: '/customer/dashboard' },
     { title: 'Orders', href: '/orders' },
     { title: 'Wishlist', href: '/wishlist' },
     { title: 'Cart', href: '/cart' },

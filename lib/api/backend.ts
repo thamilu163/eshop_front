@@ -4,6 +4,7 @@
  */
 
 import { getSession } from 'next-auth/react';
+import { logger } from '@/lib/observability/logger';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
@@ -13,45 +14,39 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:80
 export async function backendFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const session = await getSession();
 
-  console.log('[Backend API] Fetching:', endpoint);
-  console.log('[Backend API] Has session:', !!session);
-  console.log('[Backend API] Has token:', !!(session as any)?.accessToken);
-
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (!session || !(session as any)?.accessToken) {
-    console.error('[Backend API] ❌ No access token available');
+    logger.error('[Backend API] ❌ No access token available');
     throw new Error('No access token available');
   }
 
   const url = `${BACKEND_URL}${endpoint}`;
-  console.log('[Backend API] URL:', url);
 
   const response = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       Authorization: `Bearer ${(session as any).accessToken}`,
       ...options.headers,
     },
   });
 
-  console.log('[Backend API] Response status:', response.status);
-
   if (!response.ok) {
     if (response.status === 401) {
-      console.error('[Backend API] ❌ Unauthorized - Token expired or invalid');
+      logger.error('[Backend API] ❌ Unauthorized - Token expired or invalid');
       throw new Error('Unauthorized - Token expired or invalid');
     }
     if (response.status === 403) {
-      console.error('[Backend API] ❌ Forbidden - Insufficient permissions');
+      logger.error('[Backend API] ❌ Forbidden - Insufficient permissions');
       throw new Error('Forbidden - Insufficient permissions');
     }
     const errorText = await response.text().catch(() => 'Unknown error');
-    console.error('[Backend API] ❌ API Error:', response.status, errorText);
+    logger.error(`[Backend API] ❌ API Error: ${response.status}`, { error: errorText });
     throw new Error(`API Error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
-  console.log('[Backend API] ✅ Success:', data);
   return data;
 }
 
@@ -126,9 +121,6 @@ export async function serverBackendFetch<T>(
 ): Promise<T> {
   const url = `${BACKEND_URL}${endpoint}`;
 
-  console.log('[Backend API/Server] Fetching:', url);
-  console.log('[Backend API/Server] Has token:', !!accessToken);
-
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -139,15 +131,19 @@ export async function serverBackendFetch<T>(
     cache: 'no-store',
   });
 
-  console.log('[Backend API/Server] Response status:', response.status);
-
   if (!response.ok) {
     const errorText = await response.text().catch(() => 'Unknown error');
-    console.error('[Backend API/Server] ❌ API Error:', response.status, errorText);
+    
+    // 428 is an expected flow for incomplete seller profiles (triggers redirect)
+    if (response.status === 428) {
+      logger.warn(`[Backend API/Server] ⚠️ Incomplete profile (428): ${errorText}`);
+    } else {
+      logger.error(`[Backend API/Server] ❌ API Error: ${response.status}`, { error: errorText });
+    }
+    
     throw new Error(`API Error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
-  console.log('[Backend API/Server] ✅ Success');
   return data;
 }

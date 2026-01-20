@@ -12,6 +12,7 @@ export function ProductGrid({ products = [] }: ProductGridProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {products.map((p: unknown, idx: number) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const prod = p as Record<string, any>;
         return (
           <article key={prod?.id ?? idx} className="rounded-lg border p-4">

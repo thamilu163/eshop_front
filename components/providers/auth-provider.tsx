@@ -319,8 +319,8 @@ export function withAuth<T extends object>(
   }
 ) {
   return function AuthenticatedComponent(props: T) {
-    const { user: ___user, status, canAccess, login } = useAuth();
-    const pathname = usePathname();
+    const { user: ___user, status, canAccess } = useAuth();
+    // const pathname = usePathname();
 
     // Show loading state
     if (status === 'loading') {

@@ -192,11 +192,12 @@ interface SavedPaymentMethodsProps {
 }
 
 export function SavedPaymentMethods({
-  customerId,
-  onSelect,
+  customerId: _customerId,
+  onSelect: _onSelect,
 }: SavedPaymentMethodsProps) {
-  const [methods, setMethods] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [_methods, _setMethods] = useState<any[]>([])
+  const [_loading, _setLoading] = useState(true)
 
   // Fetch saved payment methods
   // Implementation depends on your API structure

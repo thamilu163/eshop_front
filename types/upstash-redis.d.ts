@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 declare module '@upstash/redis' {
   export class Redis {
     constructor(options?: { url?: string; token?: string });

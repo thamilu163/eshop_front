@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
+import { logger } from '@/lib/observability/logger';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8082';
 const BACKEND_API_URL = process.env.BACKEND_API_URL || API_BASE_URL;
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
     const user = respData.user ?? respData.data?.user ?? respData.userInfo ?? respData.data ?? null;
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('v1 login proxy - backend response keys:', Object.keys(respData));
+      logger.debug('v1 login proxy - backend response keys:', { keys: Object.keys(respData) });
     }
 
     const nextResponse = NextResponse.json({ user, success: true }, { status: 200 });
@@ -54,8 +55,9 @@ export async function POST(request: NextRequest) {
     });
 
     return nextResponse;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
-    console.error('v1 login proxy error:', err);
+    logger.error('v1 login proxy error:', { error: err });
     const respData = err?.response?.data || null;
     const message = respData?.title || err?.message || 'Authentication Error';
     const status = err?.response?.status || 500;

@@ -16,6 +16,7 @@ export function useReviews(productId: string) {
   });
 
   const createMutation = useMutation({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mutationFn: (review: any) => reviewsApi.createReview(productId, review),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reviews', productId] });
@@ -23,6 +24,7 @@ export function useReviews(productId: string) {
   });
 
   const updateMutation = useMutation({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mutationFn: ({ reviewId, review }: { reviewId: string; review: any }) =>
       reviewsApi.updateReview(reviewId, review),
     onSuccess: () => {

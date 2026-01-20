@@ -35,6 +35,7 @@ export default function CreateStorePage() {
         toast.success('Store created successfully!');
         router.push('/seller/products/add');
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       onError: (error: any) => {
         toast.error('Failed to create store', {
           description: error.response?.data?.message || error.message || 'Please try again',

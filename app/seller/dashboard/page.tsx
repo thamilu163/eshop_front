@@ -12,6 +12,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { redirect } from 'next/navigation';
 import SellerDashboardClient from './SellerDashboardClient';
 import { serverBackendFetch, SellerDashboardResponse } from '@/lib/api/backend';
+import { logger } from '@/lib/observability/logger';
 
 interface DashboardStats {
   totalProducts: number;
@@ -22,34 +23,33 @@ interface DashboardStats {
 
 interface DashboardData {
   stats?: DashboardStats;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   recentProducts?: any[];
   error?: string;
 }
 
 export default async function SellerDashboardPage() {
-  console.log('[SellerDashboard/Page] 📄 Rendering server component');
+  logger.debug('[SellerDashboard/Page] Rendering server component');
   
   const session = await getServerSession(authOptions);
 
-  console.log('[SellerDashboard/Page] Session check');
-  console.log('[SellerDashboard/Page] User:', session?.user?.email);
-  console.log('[SellerDashboard/Page] Roles:', session?.roles?.join(', ') || 'none');
+  logger.debug('[SellerDashboard/Page] Session check', { user: session?.user?.email, roles: session?.roles });
 
   // Double-check authentication (middleware should have caught this)
   if (!session) {
-    console.log('[SellerDashboard/Page] ❌ No session, redirecting to login');
+    logger.warn('[SellerDashboard/Page] No session, redirecting to login');
     redirect('/login?callbackUrl=/seller/dashboard');
   }
 
   // Double-check role (middleware should have caught this)
   if (!session.roles?.includes('SELLER')) {
-    console.log('[SellerDashboard/Page] ❌ Not a seller, redirecting to access-denied');
+    logger.warn('[SellerDashboard/Page] Not a seller, redirecting to access-denied');
     redirect('/access-denied');
   }
 
   // Check for session errors
   if (session.error) {
-    console.log('[SellerDashboard/Page] ⚠️ Session has error:', session.error);
+    logger.warn('[SellerDashboard/Page] Session has error', { error: session.error });
     redirect('/login?error=session_expired');
   }
 
@@ -57,41 +57,49 @@ export default async function SellerDashboardPage() {
   let initialData: DashboardData = {};
   
   try {
-    console.log('[SellerDashboard/Page] 🔄 Fetching seller dashboard data from backend...');
-    console.log('[SellerDashboard/Page] API URL:', process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080');
-    console.log('[SellerDashboard/Page] Token:', (session as any).accessToken ? 'present' : 'missing');
+    logger.debug('[SellerDashboard/Page] Fetching seller dashboard data from backend...');
     
     const data = await serverBackendFetch<SellerDashboardResponse>(
       '/api/v1/dashboard/seller',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (session as any).accessToken
     );
 
     // Transform backend response to match our component interface
+    const dashboardData = data?.data;
+    
     initialData = {
       stats: {
-        totalProducts: data.data.shopOverview.totalProducts,
-        lowStockProducts: data.data.shopOverview.outOfStockProducts,
+        totalProducts: dashboardData?.shopOverview?.totalProducts || 0,
+        lowStockProducts: dashboardData?.shopOverview?.outOfStockProducts || 0,
         totalRevenue: 0, // Backend doesn't provide this yet
-        pendingOrders: data.data.orderManagement.newOrders,
+        pendingOrders: dashboardData?.orderManagement?.newOrders || 0,
       },
-      recentProducts: data.data.topProducts.map(p => ({
+      recentProducts: dashboardData?.topProducts?.map(p => ({
         id: p.productId,
         name: p.productName,
         price: p.currentPrice,
         stock: p.stockQuantity,
-      })),
+      })) || [],
     };
     
-    console.log('[SellerDashboard/Page] ✅ Backend data fetched successfully');
+    logger.info('[SellerDashboard/Page] Backend data fetched successfully');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    console.error('[SellerDashboard/Page] ❌ Failed to fetch from backend:', {
+    // Check for 428 Precondition Required (Incomplete Profile)
+    if (error?.message?.includes('428')) {
+      logger.warn('[SellerDashboard/Page] Incomplete seller profile (428), redirecting to onboarding');
+      redirect('/seller/onboard');
+    }
+
+    logger.error('[SellerDashboard/Page] Failed to fetch from backend', {
       message: error?.message,
       name: error?.name,
     });
     initialData.error = error?.message || 'Failed to connect to backend';
   }
 
-  console.log('[SellerDashboard/Page] ✅ Rendering client component with initial data');
+  logger.debug('[SellerDashboard/Page] Rendering client component with initial data');
 
   return (
     <SellerDashboardClient 

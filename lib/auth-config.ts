@@ -1,8 +1,10 @@
+/* eslint-disable no-console */
 import { NextAuthOptions } from 'next-auth'
 import KeycloakProvider from 'next-auth/providers/keycloak'
 import { JWT } from 'next-auth/jwt'
 import { setLastExchange } from '@/lib/auth-debug'
 import { type AuthErrorCode } from '@/lib/auth/errors'
+import { decodeJwt } from 'jose'
 
 // Normalize issuer and avoid trailing slashes
 const ISSUER = (process.env.KEYCLOAK_ISSUER || '').replace(/\/$/, '')
@@ -83,7 +85,7 @@ export const authOptions: NextAuthOptions = {
   providers: [
     // Build provider config dynamically so we only supply clientSecret for confidential clients
     KeycloakProvider(
-      ((): any => {
+      ((): any => { // eslint-disable-line @typescript-eslint/no-explicit-any
         const cfg: Record<string, unknown> = {
           clientId: process.env.KEYCLOAK_CLIENT_ID!,
           issuer: ISSUER,
@@ -95,31 +97,71 @@ export const authOptions: NextAuthOptions = {
           userinfo: `${ISSUER}/protocol/openid-connect/userinfo`,
         }
         if (process.env.KEYCLOAK_CLIENT_SECRET) cfg.clientSecret = process.env.KEYCLOAK_CLIENT_SECRET
+        if (process.env.KEYCLOAK_CLIENT_SECRET) cfg.clientSecret = process.env.KEYCLOAK_CLIENT_SECRET
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return cfg as any
       })()
     ),
   ],
 
   callbacks: {
-    async jwt({ token, account, profile, trigger }) {
+    async jwt({ token, account, profile, trigger: _trigger }) {
       // Initial sign in
-      if (account && profile) {
+      if (account && account.access_token) {
         try {
+          // Decode the access token directly to get roles reliably
+          // This bypasses potential issues with the 'profile' object structure
+          const decoded = decodeJwt(account.access_token)
+          
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const realmRoles = (decoded.realm_access as any)?.roles || []
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const resourceAccess = (decoded.resource_access as any) || {}
+          
+          const roles = [
+            ...realmRoles,
+            // Flatten resource_access roles
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ...Object.values(resourceAccess).flatMap((r: any) => r.roles || [])
+          ]
+          
+          const uniqueRoles = Array.from(new Set(roles)) as string[]
+
+          // Log for debugging
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('[NextAuth] Decoded roles from access_token:', uniqueRoles)
+          }
+
           setLastExchange({
             time: new Date().toISOString(),
             type: 'signin',
-            body: { account: { token_type: account.token_type, expires_at: account.expires_at }, profile },
+            body: { 
+              account: { token_type: account.token_type, expires_at: account.expires_at }, 
+              roles: uniqueRoles 
+            },
           })
-        } catch {}
 
-        return {
-          ...token,
-          accessToken: account.access_token,
-          refreshToken: account.refresh_token,
-          accessTokenExpires: (account.expires_at ? account.expires_at * 1000 : Date.now() + 60 * 60 * 1000),
-          // Add custom claims from Keycloak
-          roles: (profile as any)?.realm_access?.roles || [],
-          userId: (profile as any)?.sub as string,
+          return {
+            ...token,
+            accessToken: account.access_token,
+            refreshToken: account.refresh_token,
+            accessTokenExpires: (account.expires_at ? account.expires_at * 1000 : Date.now() + 60 * 60 * 1000),
+            roles: uniqueRoles,
+            userId: decoded.sub as string,
+          }
+        } catch (error) {
+           console.error('[NextAuth] Failed to decode access token:', error)
+           // Fallback to original logic if decoding fails
+           return {
+            ...token,
+            accessToken: account.access_token,
+            refreshToken: account.refresh_token,
+            accessTokenExpires: (account.expires_at ? account.expires_at * 1000 : Date.now() + 60 * 60 * 1000),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            roles: (profile as any)?.realm_access?.roles || [],
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            userId: (profile as any)?.sub as string,
+           }
         }
       }
 
@@ -144,9 +186,17 @@ export const authOptions: NextAuthOptions = {
       // Send properties to the client
       session.accessToken = token.accessToken as string
       session.error = token.error as AuthErrorCode | undefined
+      session.accessToken = token.accessToken as string
+      session.error = token.error as AuthErrorCode | undefined
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (!session.user) session.user = { name: undefined, email: undefined } as any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ;(session.user as any).id = token.userId as string
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ;(session.user as any).roles = token.roles as string[]
+      
+      // Fix: Populate top-level roles compatible with route checking logic
+      session.roles = token.roles as string[]
 
       return session
     },

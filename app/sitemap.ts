@@ -48,6 +48,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
       response.content.forEach((product: ProductDTO) => {
         productsPages.push({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           url: `${BASE_URL}/products/${(product as any).urlSlug || product.id}`,
           lastModified: product.updatedAt ? new Date(product.updatedAt) : new Date(),
           changeFrequency: 'daily',

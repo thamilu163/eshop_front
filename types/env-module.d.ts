@@ -7,6 +7,7 @@ declare module '@/env' {
     appName: string;
     enableOAuth: boolean;
     enableDirectLogin: boolean;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
   };
 }

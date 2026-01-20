@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/store/cart-store';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function AddToCartButton({ product }: { product: any }) {
   const addToCart = useCartStore((s) => s.addItem);
 

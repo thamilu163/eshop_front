@@ -2,10 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/auth-store';
-import { UserRole } from '@/types';
-import Header from '@/components/layout/header';
-import Sidebar from '@/components/layout/sidebar';
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, UserPlus, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Users, Shield, Sprout, Store, Building2, Truck, ShoppingCart } from 'lucide-react';
+import { Search, UserPlus, Filter, Download, Eye, Edit, CheckCircle, XCircle, Users, Shield, Sprout, Store, Building2, Truck, ShoppingCart } from 'lucide-react';
 import { apiClient } from '@/lib/axios';
 
 interface User {
@@ -52,9 +49,12 @@ interface PageInfo {
   pageSize: number;
 }
 
+import { usePermissions } from '@/hooks/use-permissions';
+
 export default function AdminUsersPage() {
-  const { user, isAuthenticated, token } = useAuthStore();
+  const { isAuthenticated, isAdmin, isLoading: authLoading } = usePermissions();
   const router = useRouter();
+  
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,15 +67,18 @@ export default function AdminUsersPage() {
   });
 
   useEffect(() => {
+    // Wait for auth to finish loading before diverting
+    if (authLoading) return;
+
     if (!isAuthenticated) {
       router.push('/auth/login');
       return;
     }
-      if (!user?.roles?.includes(UserRole.ADMIN)) {
+    if (!isAdmin) {
       router.push('/');
       return;
     }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, isAdmin, router, authLoading]);
 
   useEffect(() => {
     fetchUsers();
@@ -85,8 +88,8 @@ export default function AdminUsersPage() {
     try {
       setLoading(true);
       const endpoint = roleFilter === 'ALL' 
-        ? '/api/users'
-        : `/api/users/role/${roleFilter}`;
+        ? '/users'
+        : `/users/role/${roleFilter}`;
       
       const response = await apiClient.get(endpoint, {
         params: {
@@ -208,19 +211,24 @@ export default function AdminUsersPage() {
     ).join(' ');
   };
 
-  if (!isAuthenticated || !user?.roles?.includes(UserRole.ADMIN)) {
-    router.push('/auth/login');
-    return null;
+  useEffect(() => {
+    if (!loading && (!isAuthenticated || !isAdmin)) {
+      router.push('/auth/login')
+    }
+  }, [loading, isAuthenticated, isAdmin, router])
+
+  if (loading) {
+    return <div>Loading...</div>
+  }
+
+  if (!isAuthenticated || !isAdmin) {
+    return null
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <div className="container mx-auto grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6 px-4 md:px-6 py-6">
-        <Sidebar />
-        <main className="space-y-6">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1 className="text-3xl font-bold">User Management</h1>
               <p className="text-muted-foreground mt-1">
@@ -565,8 +573,6 @@ export default function AdminUsersPage() {
               )}
             </CardContent>
           </Card>
-        </main>
-      </div>
     </div>
   );
 }

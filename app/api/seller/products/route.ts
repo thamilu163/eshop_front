@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createProductApiSchema } from "@/lib/validations/product";
 
 // Mock database - Replace with your actual database
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const products: any[] = [];
 
 // Helper to simulate authentication - Replace with your auth logic
@@ -33,9 +34,11 @@ async function uploadImagesToCloudinary(images: string[]): Promise<string[]> {
   }
 
   // Dynamically import cloudinary to avoid build-time hard dependency
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let cloudinary: any;
   try {
     const mod = await import("cloudinary");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     cloudinary = (mod as any).v2 || mod;
     cloudinary.config({
       cloud_name: cloudName,

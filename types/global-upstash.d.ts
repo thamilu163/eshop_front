@@ -5,6 +5,7 @@ declare module '@upstash/redis' {
     pipeline(): {
       incr(key: string): void;
       pttl(key: string): void;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       exec<T = any[]>(): Promise<T>;
     };
     incr(key: string): Promise<number>;

@@ -1,5 +1,5 @@
 declare global {
-  // lightweight global logger placeholder for migration; prefer importing `logger` explicitly in new code
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const logger: any;
 }
 

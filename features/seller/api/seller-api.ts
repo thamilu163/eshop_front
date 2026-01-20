@@ -1,4 +1,5 @@
 import apiClient from '@/lib/axios';
+import { logger } from '@/lib/observability/logger';
 import { StoreDTO, ProductDTO, PageResponse, PageRequest } from '@/types';
 import { StoreCreateRequest } from '../types';
 
@@ -14,6 +15,7 @@ export const sellerApi = {
     try {
       const { data } = await apiClient.get<boolean>('/api/v1/seller/store/exists');
       return data;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       if (error?.status === 404 || error?.status === 403) {
         return false;
@@ -23,18 +25,20 @@ export const sellerApi = {
   },
 
   createStore: async (storeData: StoreCreateRequest): Promise<StoreDTO> => {
-    console.log('🔍 [createStore] Request payload:', JSON.stringify(storeData, null, 2));
+    logger.debug('🔍 [createStore] Request payload:', { storeData });
     
     try {
       const { data } = await apiClient.post<StoreDTO>('/api/v1/seller/store', storeData);
-      console.log('✅ [createStore] Success:', data);
+      logger.info('✅ [createStore] Success:', { data });
       return data;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      console.error('❌ [createStore] Failed');
-      console.error('📦 Payload sent:', storeData);
-      console.error('🚨 Backend error:', error.response?.data);
-      console.error('📊 Status:', error.response?.status);
-      console.error('📋 Headers:', error.response?.headers);
+      logger.error('❌ [createStore] Failed', {
+        payload: storeData,
+        backendError: error.response?.data,
+        status: error.response?.status,
+        headers: error.response?.headers,
+      });
       throw error;
     }
   },

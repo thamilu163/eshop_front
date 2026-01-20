@@ -1,11 +1,11 @@
 "use client";
 
 import { useSession } from 'next-auth/react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Package, Search, Filter, AlertTriangle, CheckCircle, Save } from 'lucide-react';
+import { Package, Search, Filter, AlertTriangle, Save } from 'lucide-react';
 import { useState } from 'react';
 
 // Mock inventory data
@@ -18,7 +18,7 @@ const MOCK_INVENTORY = [
 ];
 
 export default function SellerInventoryPage() {
-  const { data: session } = useSession();
+  const { data: _session } = useSession();
   const [searchQuery, setSearchQuery] = useState('');
   const [inventory, setInventory] = useState(MOCK_INVENTORY);
   const [editingId, setEditingId] = useState<number | null>(null);

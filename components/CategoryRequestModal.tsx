@@ -29,6 +29,8 @@ export default function CategoryRequestModal({ onClose, onSuccess }: Props) {
         throw new Error(data.message || 'Failed to submit request');
       }
       onSuccess();
+      onSuccess();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.message || 'Failed to submit request');
     } finally {

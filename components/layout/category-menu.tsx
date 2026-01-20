@@ -71,7 +71,7 @@ export default function CategoryMenu() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" className="h-9 gap-1 font-medium">
+        <Button variant="ghost" className="h-9 gap-1 font-medium" suppressHydrationWarning>
           All Categories
           <ChevronDown className="h-4 w-4 opacity-50" />
         </Button>

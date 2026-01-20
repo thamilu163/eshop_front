@@ -17,20 +17,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Store, Loader2, CheckCircle2 } from 'lucide-react';
+import { SellerIdentityType, SellerBusinessType } from '@/types';
 import { sellerOnboardingSchema, type SellerOnboardingFormData } from '../schemas';
 import { useCreateStore } from '@/hooks/queries/use-seller';
 import { registerSeller, getSellerProfile } from '../api';
 import { sellerApi } from '../api/seller-api';
 import { toast } from 'sonner';
 import type { StoreCreateRequest } from '../types';
+import { logger } from '@/lib/observability/logger';
 
 export function SellerOnboardingForm() {
   const { data: session } = useSession();
@@ -50,12 +45,27 @@ export function SellerOnboardingForm() {
     defaultValues: {
       email: session?.user?.email || '',
       acceptedTerms: false,
+      businessTypes: [],
+      identityType: SellerIdentityType.INDIVIDUAL,
     },
   });
 
-  const sellerType = watch('sellerType');
+  const identityType = watch('identityType');
+  const businessTypes = watch('businessTypes');
+
+  const handleBusinessTypeChange = (type: string, checked: boolean) => {
+    const current = businessTypes || [];
+    const typeEnum = type as SellerBusinessType;
+    
+    if (checked) {
+      setValue('businessTypes', [...current, typeEnum]);
+    } else {
+      setValue('businessTypes', current.filter((t) => t !== typeEnum));
+    }
+  };
 
   const onSubmit = async (data: SellerOnboardingFormData) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const accessToken = (session as any)?.accessToken;
 
     if (!accessToken) {
@@ -68,29 +78,23 @@ export function SellerOnboardingForm() {
     setIsSubmitting(true);
 
     try {
-      // CORRECT FLOW:
-      // 1. Check seller profile FIRST
-      // 2. Register ONLY if profile doesn't exist
-      // 3. Check store existence
-      // 4. Create store ONLY if it doesn't exist
-
-      console.log('[Onboarding] Starting flow for:', data.email);
+      logger.info('[Onboarding] Starting flow for:', { email: data.email });
 
       // Step 1: Check if seller profile exists
       const existingSeller = await getSellerProfile(accessToken);
 
       // Step 2: Register seller ONLY if no profile exists
       if (!existingSeller) {
-        console.log('[Onboarding] No profile found, registering seller...');
+        logger.info('[Onboarding] No profile found, registering seller...');
         await registerSeller(data, accessToken);
-        console.log('[Onboarding] Seller registered successfully');
+        logger.info('[Onboarding] Seller registered successfully');
       } else {
-        console.log('[Onboarding] Seller profile already exists, skipping registration');
+        logger.info('[Onboarding] Seller profile already exists, skipping registration');
       }
 
       // Step 3: Check if store exists
       const storeExists = await sellerApi.checkStoreExists();
-      console.log('[Onboarding] Store exists:', storeExists);
+      logger.info('[Onboarding] Store exists:', { storeExists });
 
       // Step 4: Create store ONLY if it doesn't exist
       if (!storeExists) {
@@ -101,11 +105,12 @@ export function SellerOnboardingForm() {
           ...(data.phone && { phone: data.phone }),
         };
 
-        console.log('[Onboarding] Creating store:', storeRequest);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        logger.info('[Onboarding] Creating store:', storeRequest as any);
         await createStore.mutateAsync(storeRequest);
-        console.log('[Onboarding] Store created successfully');
+        logger.info('[Onboarding] Store created successfully');
       } else {
-        console.log('[Onboarding] Store already exists, skipping creation');
+        logger.info('[Onboarding] Store already exists, skipping creation');
       }
 
       setSuccess(true);
@@ -118,12 +123,20 @@ export function SellerOnboardingForm() {
         router.push('/seller');
         router.refresh();
       }, 1500);
-    } catch (error: any) {
-      console.error('[Onboarding] Error:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('[Onboarding] Error:', { 
+        message: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+        originalError: error 
+      });
+      
       toast.error('Onboarding failed', {
-        description: error.message || 'Please try again',
+        description: errorMessage,
       });
       setIsSubmitting(false);
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
@@ -160,30 +173,65 @@ export function SellerOnboardingForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Seller Type */}
-          <div className="space-y-2">
-            <Label htmlFor="sellerType">
-              Seller Type <span className="text-red-500">*</span>
-            </Label>
-            <Select
-              onValueChange={(value) => setValue('sellerType', value as any)}
-              defaultValue={sellerType}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select seller type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="INDIVIDUAL">Individual Seller</SelectItem>
-                <SelectItem value="BUSINESS">Business</SelectItem>
-                <SelectItem value="FARMER">Farmer</SelectItem>
-                <SelectItem value="WHOLESALER">Wholesaler</SelectItem>
-                <SelectItem value="RETAILER">Retailer</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.sellerType && (
-              <p className="text-sm text-red-500">{errors.sellerType.message}</p>
+          {/* Identity Type */}
+          <div className="space-y-3">
+            <Label className="text-base">Identity Type</Label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 rounded-lg border p-3 hover:bg-slate-50 cursor-pointer w-full">
+                <input
+                  type="radio"
+                  value={SellerIdentityType.INDIVIDUAL}
+                  {...register('identityType')}
+                  className="h-4 w-4"
+                />
+                <span className="font-medium">Individual</span>
+              </label>
+              <label className="flex items-center gap-2 rounded-lg border p-3 hover:bg-slate-50 cursor-pointer w-full">
+                <input
+                  type="radio"
+                  value={SellerIdentityType.BUSINESS}
+                  {...register('identityType')}
+                  className="h-4 w-4"
+                />
+                <span className="font-medium">Business</span>
+              </label>
+            </div>
+            {errors.identityType && (
+              <p className="text-sm text-red-500">{errors.identityType.message}</p>
             )}
           </div>
+
+          {/* Business Types */}
+          <div className="space-y-3">
+            <Label className="text-base">Business Type(s) <span className="text-red-500">*</span></Label>
+            <div className="grid grid-cols-2 gap-3">
+              {[SellerBusinessType.FARMER, SellerBusinessType.WHOLESALER, SellerBusinessType.RETAILER].map((type) => (
+                <label key={type} className="flex items-center gap-2 rounded-lg border p-4 hover:bg-slate-50 cursor-pointer">
+                  <Checkbox
+                    checked={businessTypes?.includes(type)}
+                    onCheckedChange={(checked) => handleBusinessTypeChange(type, checked as boolean)}
+                  />
+                  <span>{type}</span>
+                </label>
+              ))}
+            </div>
+             {errors.businessTypes && (
+              <p className="text-sm text-red-500">{errors.businessTypes.message}</p>
+            )}
+          </div>
+
+          {/* Farmer Specific: Own Produce */}
+          {businessTypes?.includes(SellerBusinessType.FARMER) && (
+             <div className="flex items-center space-x-2 rounded-lg bg-green-50 p-4 border border-green-100">
+                <Checkbox
+                  id="isOwnProduce"
+                  onCheckedChange={(checked) => setValue('isOwnProduce', checked as boolean)}
+                />
+                <Label htmlFor="isOwnProduce" className="cursor-pointer text-green-800">
+                  I grow/produce these products myself (verified farmer tag)
+                </Label>
+             </div>
+          )}
 
           {/* Display Name */}
           <div className="space-y-2">
@@ -200,18 +248,20 @@ export function SellerOnboardingForm() {
             )}
           </div>
 
-          {/* Business Name (optional) */}
+          {/* Business Name (for Business Identity) */}
+          {identityType === SellerIdentityType.BUSINESS && (
           <div className="space-y-2">
-            <Label htmlFor="businessName">Business Name (optional)</Label>
+            <Label htmlFor="businessName">Legal Business Name <span className="text-red-500">*</span></Label>
             <Input
               id="businessName"
-              placeholder="Legal business name (if applicable)"
+              placeholder="Registered business name"
               {...register('businessName')}
             />
             {errors.businessName && (
               <p className="text-sm text-red-500">{errors.businessName.message}</p>
             )}
           </div>
+          )}
 
           {/* Email */}
           <div className="space-y-2">
@@ -234,31 +284,153 @@ export function SellerOnboardingForm() {
             {errors.phone && <p className="text-sm text-red-500">{errors.phone.message}</p>}
           </div>
 
-          {/* Tax ID (optional) */}
-          {sellerType === 'BUSINESS' && (
-            <div className="space-y-2">
-              <Label htmlFor="taxId">Tax ID / VAT Number (optional)</Label>
-              <Input
-                id="taxId"
-                placeholder="Enter your tax identification number"
-                {...register('taxId')}
-              />
-              {errors.taxId && <p className="text-sm text-red-500">{errors.taxId.message}</p>}
-            </div>
-          )}
-
-          {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="description">Store Description (optional)</Label>
-            <Textarea
-              id="description"
-              placeholder="Tell customers about your store and products..."
-              rows={4}
-              {...register('description')}
-            />
-            {errors.description && (
-              <p className="text-sm text-red-500">{errors.description.message}</p>
+          
+          {/* KYC Documents Section */}
+          <div className="space-y-4 rounded-lg border p-4 bg-slate-50 dark:bg-slate-900/50">
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-600 text-sm">1</span>
+              KYC Documents
+            </h3>
+            
+            {/* Individual KYC */}
+            {identityType === SellerIdentityType.INDIVIDUAL && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="pan">PAN Number <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="pan" 
+                    placeholder="ABCDE1234F" 
+                    {...register('pan')} 
+                    className="uppercase"
+                    maxLength={10}
+                    onInput={(e) => e.currentTarget.value = e.currentTarget.value.toUpperCase()}
+                  />
+                  {errors.pan && <p className="text-sm text-red-500">{errors.pan.message}</p>}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="aadhaar">Aadhaar Number (Optional)</Label>
+                  <Input 
+                    id="aadhaar" 
+                    placeholder="12 digit Aadhaar number" 
+                    {...register('aadhaar')} 
+                    maxLength={12}
+                    inputMode="numeric"
+                    onInput={(e) => {
+                      // Prevent non-numeric input
+                      e.currentTarget.value = e.currentTarget.value.replace(/\D/g, '');
+                    }}
+                  />
+                  {errors.aadhaar && <p className="text-sm text-red-500">{errors.aadhaar.message}</p>}
+                </div>
+              </div>
             )}
+
+            {/* Business KYC */}
+            {identityType === SellerIdentityType.BUSINESS && (
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="businessPan">Business PAN <span className="text-red-500">*</span></Label>
+                    <Input 
+                      id="businessPan" 
+                      placeholder="ABCDE1234F" 
+                      {...register('businessPan')} 
+                      className="uppercase"
+                      maxLength={10}
+                    />
+                    {errors.businessPan && <p className="text-sm text-red-500">{errors.businessPan.message}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="taxId">GSTIN <span className="text-red-500">*</span></Label>
+                    <Input 
+                      id="taxId" 
+                      placeholder="22AAAAA0000A1Z5" 
+                      {...register('taxId')} 
+                      className="uppercase"
+                      maxLength={15}
+                    />
+                    {errors.taxId && <p className="text-sm text-red-500">{errors.taxId.message}</p>}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="registrationProof">Registration Proof Document (Optional)</Label>
+                  <Input
+                    id="registrationProof"
+                    placeholder="URL to document (or file upload placeholder)"
+                    {...register('registrationProof')}
+                  />
+                  <p className="text-xs text-muted-foreground">Upload Certificate of Incorporation, Shop Act License, etc.</p>
+                  {errors.registrationProof && <p className="text-sm text-red-500">{errors.registrationProof.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                   <Label htmlFor="authorizedSignatory">Authorized Signatory Name <span className="text-red-500">*</span></Label>
+                   <Input 
+                     id="authorizedSignatory" 
+                     placeholder="Full legal name of signatory" 
+                     {...register('authorizedSignatory')} 
+                   />
+                   {errors.authorizedSignatory && <p className="text-sm text-red-500">{errors.authorizedSignatory.message}</p>}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bank Details Section */}
+          <div className="space-y-4 rounded-lg border p-4 bg-slate-50 dark:bg-slate-900/50">
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-600 text-sm">2</span>
+              Bank Details
+            </h3>
+            
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="bankAccountNumber">Account Number <span className="text-red-500">*</span></Label>
+                <Input 
+                  id="bankAccountNumber" 
+                  placeholder="Enter account number" 
+                  {...register('bankAccountNumber')} 
+                />
+                {errors.bankAccountNumber && <p className="text-sm text-red-500">{errors.bankAccountNumber.message}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bankIfsc">IFSC Code <span className="text-red-500">*</span></Label>
+                <Input 
+                  id="bankIfsc" 
+                  placeholder="SBIN0001234" 
+                  {...register('bankIfsc')} 
+                  className="uppercase"
+                  maxLength={11}
+                />
+                {errors.bankIfsc && <p className="text-sm text-red-500">{errors.bankIfsc.message}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* Store Info Section Header */}
+           <div className="rounded-lg border p-4">
+            <h3 className="font-semibold text-lg flex items-center gap-2 mb-4">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-600 text-sm">3</span>
+              Store Information
+            </h3>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label htmlFor="description">Store Description (optional)</Label>
+              <Textarea
+                id="description"
+                placeholder="Tell customers about your store and products..."
+                rows={4}
+                {...register('description')}
+              />
+              {errors.description && (
+                <p className="text-sm text-red-500">{errors.description.message}</p>
+              )}
+            </div>
           </div>
 
           {/* Terms and Conditions */}

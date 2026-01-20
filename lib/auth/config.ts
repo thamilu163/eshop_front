@@ -14,6 +14,7 @@
  */
 
 import { z } from 'zod';
+import { logger } from '@/lib/observability/logger';
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -81,7 +82,7 @@ function validateKeycloakHost(baseUrl: string, allowedHosts?: string[]): boolean
       return true;
     }
     
-    console.warn(
+    logger.warn(
       '[auth-config] ALLOWED_AUTH_HOSTS not configured in production. ' +
       'This is a security risk (SSRF vulnerability). ' +
       'Set ALLOWED_AUTH_HOSTS to comma-separated list of allowed Keycloak domains.'
@@ -94,14 +95,14 @@ function validateKeycloakHost(baseUrl: string, allowedHosts?: string[]): boolean
     const isAllowed = allowedHosts.includes(url.host);
     
     if (!isAllowed) {
-      console.error(
+      logger.error(
         `[auth-config] Keycloak host ${url.host} not in allowed list: ${allowedHosts.join(', ')}`
       );
     }
     
     return isAllowed;
   } catch (error) {
-    console.error('[auth-config] Invalid Keycloak base URL', { baseUrl, error });
+    logger.error('[auth-config] Invalid Keycloak base URL', { baseUrl, error });
     return false;
   }
 }
@@ -154,7 +155,7 @@ export function loadAuthConfig(): AuthConfig | null {
   
   if (!result.success) {
     const errors = result.error.flatten();
-    console.error('[auth-config] Invalid authentication configuration', {
+    logger.error('[auth-config] Invalid authentication configuration', {
       fieldErrors: errors.fieldErrors,
       formErrors: errors.formErrors,
     });
@@ -174,7 +175,7 @@ export function loadAuthConfig(): AuthConfig | null {
   cacheTimestamp = now;
   
   if (process.env.NODE_ENV !== 'production') {
-    console.debug('[auth-config] Configuration loaded and cached', {
+    logger.debug('[auth-config] Configuration loaded and cached', {
       realm: cachedConfig.realm,
       clientId: cachedConfig.clientId.substring(0, 8) + '...',
       baseUrl: new URL(cachedConfig.keycloakBaseUrl).host,

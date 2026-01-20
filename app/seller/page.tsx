@@ -10,15 +10,13 @@ import {
   Store,
   Package,
   DollarSign,
-  Sprout,
-  ShoppingCart,
-  Warehouse,
   PlusCircle,
   Archive,
   BarChart2,
   Settings,
   AlertCircle,
 } from 'lucide-react';
+import { logger } from '@/lib/observability/logger';
 
 interface DashboardData {
   shopOverview: {
@@ -50,32 +48,33 @@ export default function SellerPage() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [retryKey, setRetryKey] = useState(0);
+  const [retryKey, _setRetryKey] = useState(0);
 
-  console.log('[Seller/Page] Component rendering');
-  console.log('[Seller/Page] Session status:', status);
-  console.log('[Seller/Page] User:', session?.user?.email);
-  console.log('[Seller/Page] Roles:', session?.roles?.join(', '));
+  logger.debug('[Seller/Page] Component rendering', {
+    status,
+    user: session?.user?.email,
+    roles: session?.roles
+  });
 
   useEffect(() => {
-    console.log('[Seller/Page] useEffect running, status:', status);
+    logger.debug('[Seller/Page] useEffect running', { status });
 
     // Guard against loading or unauthenticated states (handled by SellerGuard, but keeping for safety in this local effect)
     if (status !== 'authenticated') return;
 
     // Check if we have access token
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const accessToken = (session as any)?.accessToken;
     if (!accessToken) {
-      console.log('[Seller/Page] ❌ No access token available');
+      logger.warn('[Seller/Page] No access token available');
       setError('No access token available');
       setLoading(false);
       return;
     }
 
     // Make API call to backend using async/await with abort handling
-    console.log('[Seller/Page] 🚀 Fetching dashboard from backend...');
-    console.log('[Seller/Page] Token:', accessToken.substring(0, 30) + '...');
-    console.log('[Seller/Page] API URL:', env.apiBaseUrl + '/api/v1/dashboard/seller');
+    logger.debug('[Seller/Page] Fetching dashboard from backend...');
+    logger.debug('[Seller/Page] API URL', { url: env.apiBaseUrl + '/api/v1/dashboard/seller' });
 
     const controller = new AbortController();
     const signal = controller.signal;
@@ -91,21 +90,22 @@ export default function SellerPage() {
           signal,
         });
 
-        console.log('[Seller/Page] 📡 Response status:', res.status);
+        logger.debug('[Seller/Page] Response status', { status: res.status });
 
         // Gracefully handle non-OK responses
         if (!res.ok) {
           let msg = `HTTP ${res.status}:${res.statusText ? ' ' + res.statusText : ''}`;
           try {
             const raw = await res.text();
-            console.warn('[Seller/Page] Raw error body:', raw);
+            logger.warn('[Seller/Page] Raw error body', { raw });
             const correlation =
               res.headers.get('x-correlation-id') || res.headers.get('x-correlation') || null;
             // Try to parse JSON error body
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let body: any = null;
             try {
               body = raw ? JSON.parse(raw) : null;
-            } catch (e) {
+            } catch (_e) {
               body = null;
             }
 
@@ -124,26 +124,27 @@ export default function SellerPage() {
             if (correlation) {
               msg = `${msg} (ref: ${correlation})`;
             }
-          } catch (e) {
+          } catch (_e) {
             // ignore parse errors
           }
 
-          console.warn('[Seller/Page] API returned error:', msg);
+          logger.warn('[Seller/Page] API returned error:', { msg });
           setError(msg);
           setLoading(false);
           return;
         }
 
         const data = await res.json();
-        console.log('[Seller/Page] ✅ Dashboard data received:', data);
+        logger.info('[Seller/Page] Dashboard data received');
         setDashboard(data.data);
         setLoading(false);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         if (err?.name === 'AbortError') {
-          console.log('[Seller/Page] Fetch aborted');
+          logger.debug('[Seller/Page] Fetch aborted');
           return;
         }
-        console.error('[Seller/Page] ❌ API Error:', err);
+        logger.error('[Seller/Page] API Error:', { error: err });
         setError(err?.message || 'Failed to load dashboard');
         setLoading(false);
       }
@@ -153,11 +154,7 @@ export default function SellerPage() {
     return () => controller.abort();
   }, [session, status, router, retryKey]);
 
-  const handleRetry = () => {
-    setError(null);
-    setLoading(true);
-    setRetryKey((k) => k + 1);
-  };
+
 
   // Loading state
   if (status === 'loading' || loading) {

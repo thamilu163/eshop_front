@@ -21,7 +21,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -124,6 +123,7 @@ export function AddProductForm() {
   }
 
   const form = useForm<ProductFormData>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(productSchema) as any,
     defaultValues: {
       name: '',
@@ -213,6 +213,9 @@ export function AddProductForm() {
       shopId: storeData.id,
     };
 
+
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     addProductMut.mutate(payload as any, {
       onSuccess: () => {
         router.push('/seller/products');
@@ -479,7 +482,7 @@ export function AddProductForm() {
                 {...register('attributes.brand')}
               />
               {errors.attributes?.brand && (
-                <p className="text-destructive mt-1 text-xs">{errors.attributes.brand.message}</p>
+                <p className="text-destructive mt-1 text-xs">{errors.attributes.brand.message as string}</p>
               )}
             </div>
 

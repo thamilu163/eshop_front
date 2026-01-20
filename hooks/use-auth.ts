@@ -10,7 +10,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import type { UserRole } from '@/domain/auth/types';
+import { signOut } from 'next-auth/react';
 import { logger } from '@/lib/observability/logger';
+import { tokenStorage } from '@/lib/axios';
 
 // ============================================================================
 // Types
@@ -20,6 +22,7 @@ interface AuthUser {
   id: string;
   email?: string;
   name?: string;
+  image?: string;
   roles: UserRole[];
 }
 
@@ -78,12 +81,20 @@ export function useAuth() {
     try {
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
+      const accessToken = tokenStorage.getAccessToken();
+      const headers: HeadersInit = {};
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+      }
+
       const response = await fetch('/api/auth/me', {
+        headers,
         credentials: 'include',
       });
 
       if (response.ok) {
         const user = await response.json();
+        // console.log('useAuth: Fetch success', JSON.stringify(user, null, 2));
         setState({
           user,
           isLoading: false,
@@ -91,6 +102,7 @@ export function useAuth() {
           error: null,
         });
       } else if (response.status === 401) {
+        // console.log('useAuth: 401 Not Authenticated');
         // Not authenticated
         setState({
           user: null,
@@ -137,45 +149,22 @@ export function useAuth() {
    */
   const logout = useCallback(async () => {
     try {
-      const response = await fetch('/api/auth/keycloak/logout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ sso: true, redirectTo: '/' }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-
-        // Redirect to SSO logout if URL provided
-        if (data.logoutUrl) {
-          window.location.href = data.logoutUrl;
-        } else {
-          // Local logout only
-          setState({
-            user: null,
-            isLoading: false,
-            isAuthenticated: false,
-            error: null,
-          });
-          router.push('/');
-        }
-      } else {
-        throw new Error('Logout failed');
-      }
-    } catch (error) {
-      logger.error('Logout error:', { error });
-      // Force local state clear even on error
+      // Use NextAuth signOut to clear session cookies and handle redirect
+      await signOut({ callbackUrl: '/' });
+      
+      // Clear local state (though page will likely unload)
       setState({
         user: null,
         isLoading: false,
         isAuthenticated: false,
-        error: 'Logout failed',
+        error: null,
       });
+    } catch (error) {
+      logger.warn('Logout failed:', { error });
+      // Even if it fails, try to force redirect
+      window.location.href = '/';
     }
-  }, [router]);
+  }, []);
 
   /**
    * Manually refreshes authentication token

@@ -4,11 +4,15 @@ import React, { useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/use-auth-nextauth'
 import { toast } from 'sonner'
 import { useQuery } from '@tanstack/react-query'
 import { useCategories, useBrands, useCreateProduct } from '@/features/products/hooks/use-products'
 import { productApi } from '@/features/products/api/product-api'
 import { productFormSchema, type ProductFormData, generateSlug, generateSKU, calculateFinalPrice } from '@/lib/validation/schemas/product-form-schema'
+import { mapFormToBackendRequest } from '@/lib/product/backend-mapper'
+import { PRODUCT_FORM_CONSTANTS } from '@/lib/product/constants'
+import type { Category, Brand } from '@/types/product'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -17,13 +21,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Package, DollarSign, Warehouse, Image as ImageIcon, Settings, Truck, Search, FileText } from 'lucide-react'
-import { VariantManager, type VariantCombination } from '@/components/product/VariantManager'
+import { Package, DollarSign, Warehouse, Image as ImageIcon, Settings } from 'lucide-react'
 
 export default function CreateProductPage() {
   const router = useRouter()
+  const { user, isLoading, hasRole } = useAuth()
   const [activeTab, setActiveTab] = useState('basic')
-  const [variantCombinations, setVariantCombinations] = useState<VariantCombination[]>([])
   
   const categories = useCategories()
   const brands = useBrands()
@@ -33,28 +36,28 @@ export default function CreateProductPage() {
   const { data: categoryTree } = useQuery({
     queryKey: ['categoryTree'],
     queryFn: () => productApi.getCategoryTree(),
-    staleTime: 15 * 60 * 1000,
+    staleTime: PRODUCT_FORM_CONSTANTS.STALE_TIME_MS,
   })
 
   // Get all categories (including children) for sub-category lookup
-  const allCategories = React.useMemo(() => {
+  const allCategories = React.useMemo((): Category[] => {
     const raw = categories.data
-    if (Array.isArray(raw)) return raw
+    if (Array.isArray(raw)) return raw as Category[]
     return []
   }, [categories.data])
 
   // Filter to show only top-level categories in main dropdown
-  const categoryList = React.useMemo(() => {
+  const categoryList = React.useMemo((): Category[] => {
     if (Array.isArray(categoryTree) && categoryTree.length > 0) {
-      return categoryTree
+      return categoryTree as Category[]
     }
     // Fallback to filtered list
-    return allCategories.filter((cat: any) => !cat.parentCategory && !cat.parent_id)
+    return allCategories.filter(cat => !cat.parentCategory && !cat.parent_id)
   }, [categoryTree, allCategories])
 
-  const brandList = React.useMemo(() => {
+  const brandList = React.useMemo((): Brand[] => {
     const raw = brands.data
-    if (Array.isArray(raw)) return raw
+    if (Array.isArray(raw)) return raw as Brand[]
     return []
   }, [brands.data])
 
@@ -66,28 +69,29 @@ export default function CreateProductPage() {
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<ProductFormData>({
-    resolver: zodResolver(productFormSchema) as any, // Type assertion to fix Zod default value type inference
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(productFormSchema) as any,
     defaultValues: {
       sellingPrice: 0,
       mrp: 0,
       discountType: 'NONE',
       discountValue: 0,
       taxType: 'GST',
-      taxPercentage: 18,
+      taxPercentage: PRODUCT_FORM_CONSTANTS.DEFAULT_TAX_PERCENTAGE,
       stockQuantity: 0,
-      stockStatus: 'IN_STOCK',
-      minOrderQuantity: 1,
-      maxOrderQuantity: 999,
-      lowStockThreshold: 5,
-      weightUnit: 'KG',
-      dimensionUnit: 'CM',
-      deliveryTime: 7,
-      status: 'DRAFT',
+      stockStatus: PRODUCT_FORM_CONSTANTS.DEFAULT_STOCK_STATUS,
+      minOrderQuantity: PRODUCT_FORM_CONSTANTS.DEFAULT_MIN_ORDER_QUANTITY,
+      maxOrderQuantity: PRODUCT_FORM_CONSTANTS.DEFAULT_MAX_ORDER_QUANTITY,
+      lowStockThreshold: PRODUCT_FORM_CONSTANTS.DEFAULT_LOW_STOCK_THRESHOLD,
+      weightUnit: PRODUCT_FORM_CONSTANTS.DEFAULT_WEIGHT_UNIT,
+      dimensionUnit: PRODUCT_FORM_CONSTANTS.DEFAULT_DIMENSION_UNIT,
+      deliveryTime: PRODUCT_FORM_CONSTANTS.DEFAULT_DELIVERY_DAYS,
+      status: PRODUCT_FORM_CONSTANTS.DEFAULT_PRODUCT_STATUS,
       featured: false,
       newArrival: false,
       freeShipping: false,
       hasVariants: false,
-      countryOfOrigin: 'India',
+      countryOfOrigin: PRODUCT_FORM_CONSTANTS.DEFAULT_COUNTRY_OF_ORIGIN,
       images: [],
       primaryImageIndex: 0,
     }
@@ -99,6 +103,7 @@ export default function CreateProductPage() {
   const watchDiscountType = watch('discountType')
   const watchDiscountValue = watch('discountValue')
   const watchCategoryId = watch('categoryId')
+  const watchSubCategoryId = watch('subCategoryId')
   const watchBrandId = watch('brandId')
 
   // Auto-generate slug from name
@@ -109,28 +114,237 @@ export default function CreateProductPage() {
   }, [watchName, setValue])
 
   // Auto-generate SKU
-  const handleGenerateSKU = () => {
-    const category = categoryList.find((c: any) => c.id === watchCategoryId)
-    const brand = brandList.find((b: any) => b.id === watchBrandId)
+  const handleGenerateSKU = React.useCallback(() => {
+    const category = categoryList.find(c => c.id === watchCategoryId)
+    const brand = brandList.find(b => b.id === watchBrandId)
     const sku = generateSKU(category?.name || 'PROD', brand?.name)
     setValue('sku', sku)
-  }
+  }, [categoryList, brandList, watchCategoryId, watchBrandId, setValue])
+
+  // Get dynamic helper text for product name
+  const productNameHelperText = React.useMemo(() => {
+    if (!watchCategoryId) {
+      return "Use format: Brand + Model + Key Feature. This appears in search results and product listings."
+    }
+
+    const category = categoryList.find(c => c.id === watchCategoryId)
+    const categoryName = category?.name?.toLowerCase() || ''
+    
+    if (categoryName.includes('electronic') || categoryName.includes('mobile') || categoryName.includes('laptop')) {
+      return "Format: Brand + Model + Specs (RAM/Storage) + Color (e.g., Samsung Galaxy S24 Ultra 12GB/256GB Titanium Gray)"
+    }
+    
+    if (categoryName.includes('fashion') || categoryName.includes('clothing') || categoryName.includes('wear')) {
+      return "Format: Brand + Type + Material + Color + Gender (e.g., Levi's Men's 501 Original Fit Cotton Jeans Blue)"
+    }
+
+    if (categoryName.includes('home') || categoryName.includes('furniture')) {
+      return "Format: Brand + Product + Material + Dimensions (e.g., IKEA Billy Bookcase Engineered Wood 80x28x202 cm)"
+    }
+
+    if (categoryName.includes('beauty') || categoryName.includes('health')) {
+      return "Format: Brand + Product Name + Volume/Weight + Variant (e.g., Nivea Soft Light Moisturizer Cream 300ml)"
+    }
+    
+    if (categoryName.includes('book')) {
+      return "Format: Title + Author + Binding + Edition (e.g., Atomic Habits by James Clear Hardcover 1st Edition)"
+    }
+
+    if (categoryName.includes('grocery') || categoryName.includes('essential') || categoryName.includes('food') || categoryName.includes('fruit') || categoryName.includes('vegetable')) {
+      return "Format: Brand (if any) + Product Name + Quantity/Weight (e.g., Tata Salt Iodized 1kg)"
+    }
+
+    return `Use format: Brand + Model + Key Feature appropriate for ${category?.name || 'this category'}`
+  }, [watchCategoryId, categoryList])
+
+  // Get dynamic placeholder for product name
+  const productNamePlaceholder = React.useMemo(() => {
+    if (!watchCategoryId) {
+      return "e.g., Samsung Galaxy S24 Ultra (12GB RAM, 256GB)"
+    }
+
+    const category = categoryList.find(c => c.id === watchCategoryId)
+    const categoryName = category?.name?.toLowerCase() || ''
+    
+    if (categoryName.includes('electronic') || categoryName.includes('mobile') || categoryName.includes('laptop')) {
+      return "e.g., Samsung Galaxy S24 Ultra 12GB/256GB Titanium Gray"
+    }
+    
+    if (categoryName.includes('fashion') || categoryName.includes('clothing') || categoryName.includes('wear')) {
+      return "e.g., Levi's Men's 501 Original Fit Cotton Jeans Blue"
+    }
+
+    if (categoryName.includes('home') || categoryName.includes('furniture')) {
+      return "e.g., IKEA Billy Bookcase Engineered Wood 80x28x202 cm"
+    }
+
+    if (categoryName.includes('beauty') || categoryName.includes('health')) {
+      return "e.g., Nivea Soft Light Moisturizer Cream 300ml"
+    }
+    
+    if (categoryName.includes('book')) {
+      return "e.g., Atomic Habits by James Clear Hardcover 1st Edition"
+    }
+
+    if (categoryName.includes('grocery') || categoryName.includes('essential') || categoryName.includes('food') || categoryName.includes('fruit') || categoryName.includes('vegetable')) {
+      return "e.g., Fortune Sunlite Refined Sunflower Oil 1L"
+    }
+
+    return "e.g., Product Name + Variant + Key Feature"
+  }, [watchCategoryId, categoryList])
 
   // Calculate final price
   const finalPrice = React.useMemo(() => {
     return calculateFinalPrice(watchSellingPrice || 0, watchDiscountType, watchDiscountValue || 0)
   }, [watchSellingPrice, watchDiscountType, watchDiscountValue])
 
-  const onSubmit = async (data: ProductFormData) => {
+  // Form submission with backend mapping
+  const onSubmit = React.useCallback(async (data: ProductFormData) => {
     try {
-      console.log('Submitting product:', data)
-      // await createMutation.mutateAsync(data as any)
+      // Get category and brand details for mapping
+      // const category = categoryList.find(c => c.id === data.categoryId)
+      // const subCategory = category?.children?.find((sc: any) => sc.id === data.subCategoryId)
+      // const brand = brandList.find(b => b.id === data.brandId)
+      
+      // Get shop/store ID from session
+      // const shopId = user?.storeId || user?.shopId || 1
+      
+      // Map form data to backend API format
+      // Submit to backend
+      const backendRequest = mapFormToBackendRequest(
+        data,
+         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         (categoryList as any[]).find(c => c.id === data.categoryId),
+         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         (categoryList as any[]).find(c => c.id === data.categoryId)?.children?.find((sc: any) => sc.id === data.subCategoryId),
+         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         (brandList as any[]).find(b => b.id === data.brandId)?.name,
+         1 // Default store ID for now until we have it in user session
+      )
+      
+      // Submit to backend
+      await createMutation.mutateAsync(backendRequest as unknown as Record<string, unknown>)
+      
       toast.success('Product created successfully!')
       router.push('/seller/products')
-    } catch (error: any) {
-      console.error('Error creating product:', error)
-      toast.error(error?.message || 'Failed to create product')
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string }
+      const errorMessage = err?.response?.data?.message || err?.message || 'Failed to create product'
+      toast.error(errorMessage)
     }
+  }, [categoryList, brands.data, user, createMutation, router])
+
+  // Check if selected category is "Grocery & Essentials" and sub-category is "Fruits & Vegetables"
+  const isGrocery = React.useMemo(() => {
+    if (!watchCategoryId || !watchSubCategoryId) return false
+    
+    // Find selected category and sub-category names
+    const category = categoryList.find(c => c.id === watchCategoryId)
+    const categoryName = category?.name?.toLowerCase() || ''
+    
+    // Note: In a real app we might check IDs, but strict string matching is safer for now if IDs vary
+    // Checking for "Grocery" main category
+    const isGroceryMain = categoryName.includes('grocery') || categoryName.includes('essential')
+    
+    if (!isGroceryMain) return false
+
+    // Check sub-category
+    const subCategories = category?.children || []
+    const subCategory = subCategories.find((sc: Category) => sc.id === watchSubCategoryId)
+    const subCategoryName = subCategory?.name?.toLowerCase() || ''
+
+    return subCategoryName.includes('fruit') || subCategoryName.includes('vegetable')
+  }, [watchCategoryId, watchSubCategoryId, categoryList])
+
+  // Handle next tab
+  const handleNext = React.useCallback(() => {
+    switch (activeTab) {
+      case 'basic':
+        // If grocery, go to details tab, else pricing
+        if (isGrocery) {
+          setActiveTab('details')
+        } else {
+          setActiveTab('pricing')
+        }
+        break
+      case 'details':
+        setActiveTab('pricing')
+        break
+      case 'pricing':
+        setActiveTab('inventory')
+        break
+      case 'inventory':
+        setActiveTab('advanced')
+        break
+      default:
+        break
+    }
+  }, [activeTab, isGrocery])
+
+  // Authentication is handled by the middleware and layout Guard
+  // We just need to wait for auth to load to access user ID
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Double check role just in case (though Layout guard catches this)
+  if (!user || (!hasRole('SELLER') && !hasRole('ADMIN'))) {
+    return null
+  }
+
+  // Add loading and error states
+  if (categories.isLoading || brands.isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading product data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (categories.isError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle>Error Loading Categories</CardTitle>
+            <CardDescription>
+              {categories.error?.message || 'Unable to load product categories'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => categories.refetch()}>Try Again</Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (brands.isError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle>Error Loading Brands</CardTitle>
+            <CardDescription>
+              {brands.error?.message || 'Unable to load brands'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => brands.refetch()}>Try Again</Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -146,11 +360,17 @@ export default function CreateProductPage() {
           {/* Main Form */}
           <div className="lg:col-span-2">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className={`grid w-full ${isGrocery ? 'grid-cols-5' : 'grid-cols-4'}`}>
                 <TabsTrigger value="basic" className="text-xs sm:text-sm">
                   <Package className="w-4 h-4 mr-1" />
                   Basic
                 </TabsTrigger>
+                {isGrocery && (
+                  <TabsTrigger value="details" className="text-xs sm:text-sm">
+                    <Package className="w-4 h-4 mr-1" />
+                    Freshness
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="pricing" className="text-xs sm:text-sm">
                   <DollarSign className="w-4 h-4 mr-1" />
                   Pricing
@@ -173,39 +393,6 @@ export default function CreateProductPage() {
                     <CardDescription>Essential product details</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {/* Product Name */}
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Product Name *</Label>
-                      <Input
-                        id="name"
-                        {...register('name')}
-                        placeholder="e.g., Samsung Galaxy S24 Ultra (12GB RAM, 256GB)"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Use format: Brand + Model + Key Feature. This appears in search results and product listings.
-                      </p>
-                      {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
-                    </div>
-
-                    {/* SKU */}
-                    <div className="space-y-2">
-                      <Label htmlFor="sku">SKU (Stock Keeping Unit) *</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="sku"
-                          {...register('sku')}
-                          placeholder="e.g., MOB-SAM-S24U-881911"
-                        />
-                        <Button type="button" variant="outline" onClick={handleGenerateSKU}>
-                          Generate
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Unique internal code for inventory tracking. Click "Generate" to auto-create from category and brand.
-                      </p>
-                      {errors.sku && <p className="text-sm text-red-500">{errors.sku.message}</p>}
-                    </div>
-
                     {/* Category & Brand */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -219,6 +406,7 @@ export default function CreateProductPage() {
                                 <SelectValue placeholder="Select category" />
                               </SelectTrigger>
                               <SelectContent>
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                 {categoryList.map((cat: any) => (
                                   <SelectItem key={cat.id} value={cat.id.toString()}>
                                     {cat.name}
@@ -243,15 +431,11 @@ export default function CreateProductPage() {
                         control={control}
                         render={({ field }) => {
                           // Get sub-categories for the selected category
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
                           const selectedCategory = categoryList.find((c: any) => c.id === watchCategoryId)
                           const subCategories = selectedCategory?.children || []
                           
-                          console.log('Sub-category debug:', {
-                            watchCategoryId,
-                            selectedCategory,
-                            subCategories,
-                            categoryListLength: categoryList.length
-                          })
+                          /* console.log removed */
                           
                           return (
                             <Select 
@@ -264,6 +448,7 @@ export default function CreateProductPage() {
                               </SelectTrigger>
                               <SelectContent>
                                 {subCategories.length > 0 ? (
+                                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                   subCategories.map((subCat: any) => (
                                     <SelectItem key={subCat.id} value={subCat.id.toString()}>
                                       {subCat.name}
@@ -294,6 +479,7 @@ export default function CreateProductPage() {
                                 <SelectValue placeholder="Select brand" />
                               </SelectTrigger>
                               <SelectContent>
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                 {brandList.map((brand: any) => (
                                   <SelectItem key={brand.id} value={brand.id.toString()}>
                                     {brand.name}
@@ -305,6 +491,41 @@ export default function CreateProductPage() {
                         />
                       </div>
                     </div>
+
+                    {/* Product Name */}
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Product Name *</Label>
+                      <Input
+                        id="name"
+                        {...register('name')}
+                        placeholder={productNamePlaceholder}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {productNameHelperText}
+                      </p>
+                      {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
+                    </div>
+
+                    {/* SKU */}
+                    <div className="space-y-2">
+                      <Label htmlFor="sku">SKU (Stock Keeping Unit) *</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="sku"
+                          {...register('sku')}
+                          placeholder="e.g., MOB-SAM-S24U-881911"
+                        />
+                        <Button type="button" variant="outline" onClick={handleGenerateSKU}>
+                          Generate
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Unique internal code for inventory tracking. Click "Generate" to auto-create from category and brand.
+                      </p>
+                      {errors.sku && <p className="text-sm text-red-500">{errors.sku.message}</p>}
+                    </div>
+
+
 
                     {/* Short Description */}
                     <div className="space-y-2">
@@ -319,26 +540,7 @@ export default function CreateProductPage() {
 
                     {/* Full Description */}
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="description">Full Description *</Label>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const categoryName = categoryList.find((c: any) => c.id === watchCategoryId)?.name
-                            const brandName = brandList.find((b: any) => b.id === watchBrandId)?.name
-                            
-                            const autoDesc = `Introducing the ${watchName || 'product'}${brandName ? ` by ${brandName}` : ''}. ${categoryName ? `Perfect for ${categoryName.toLowerCase()} needs.` : ''} This product combines quality, performance, and value to meet your expectations.`
-                            
-                            setValue('description', autoDesc)
-                            toast.success('Description generated! Feel free to edit it.')
-                          }}
-                          disabled={!watchName}
-                        >
-                          ✨ Generate Description
-                        </Button>
-                      </div>
+                      <Label htmlFor="description">Full Description *</Label>
                       <Textarea
                         id="description"
                         {...register('description')}
@@ -348,6 +550,193 @@ export default function CreateProductPage() {
                       <p className="text-xs text-muted-foreground">Detailed information shown on the product page. Include features, specifications, and benefits.</p>
                       {errors.description && <p className="text-sm text-red-500">{errors.description.message}</p>}
                     </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="details" className="space-y-4 mt-4">
+                {/* 3. Quality & Freshness Details */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>3. Quality & Freshness Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Freshness Type</Label>
+                        <Controller
+                          name="attributes.freshnessType"
+                          control={control}
+                          render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Fresh">Fresh</SelectItem>
+                                <SelectItem value="Organic">Organic</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Grade / Quality</Label>
+                        <Controller
+                          name="attributes.grade"
+                          control={control}
+                          render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Grade" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="A">Grade A</SelectItem>
+                                <SelectItem value="Premium">Premium</SelectItem>
+                                <SelectItem value="Standard">Standard</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Ripeness Level</Label>
+                        <Controller
+                          name="attributes.ripeness"
+                          control={control}
+                          render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Level" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Raw">Raw</SelectItem>
+                                <SelectItem value="Semi-ripe">Semi-ripe</SelectItem>
+                                <SelectItem value="Ripe">Ripe</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Shelf Life</Label>
+                        <Input {...register('attributes.shelfLife')} placeholder="e.g., 3-5 days" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* 4. Source Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>4. Source Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Origin / Farm Location</Label>
+                        <Input {...register('attributes.origin')} placeholder="e.g., Nashik Farms" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Harvest Date (Optional)</Label>
+                        <Input type="date" {...register('attributes.harvestDate')} />
+                      </div>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="flex items-center space-x-2">
+                         <Controller
+                          name="attributes.isOrganic"
+                          control={control}
+                          render={({ field }) => (
+                            <Checkbox 
+                              checked={field.value === 'Yes'}
+                              onCheckedChange={(checked) => field.onChange(checked ? 'Yes' : 'No')}
+                            />
+                          )}
+                        />
+                        <Label>Organic Certified</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                         <Controller
+                          name="attributes.isPesticideFree"
+                          control={control}
+                          render={({ field }) => (
+                            <Checkbox 
+                              checked={field.value === 'Yes'}
+                              onCheckedChange={(checked) => field.onChange(checked ? 'Yes' : 'No')}
+                            />
+                          )}
+                        />
+                        <Label>Pesticide Free</Label>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* 5. Packaging & Storage */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>5. Packaging & Storage</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Packaging Type</Label>
+                        <Controller
+                          name="attributes.packagingType"
+                          control={control}
+                          render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Loose">Loose</SelectItem>
+                                <SelectItem value="Packed">Packed</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Storage Instructions</Label>
+                        <Input {...register('attributes.storageInstructions')} placeholder="e.g., Store in refrigerator" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                 {/* 6. Optional (Nice to Have) */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>6. Optional Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                     <div className="space-y-2">
+                        <Label>Nutrition Info</Label>
+                        <Textarea {...register('attributes.nutritionInfo')} placeholder="e.g., Calories: 52, Fat: 0.2g..." />
+                      </div>
+                       <div className="space-y-2">
+                        <Label>Usage Tips</Label>
+                        <Textarea {...register('attributes.usageTips')} placeholder="e.g., Best for juice / salad" />
+                      </div>
+                       <div className="grid grid-cols-2 gap-4">
+                         <div className="flex items-center space-x-2 py-4">
+                           <Controller
+                            name="attributes.isSeasonal"
+                            control={control}
+                            render={({ field }) => (
+                              <Checkbox 
+                                checked={field.value === 'Yes'}
+                                onCheckedChange={(checked) => field.onChange(checked ? 'Yes' : 'No')}
+                              />
+                            )}
+                          />
+                          <Label>Seasonal Product</Label>
+                        </div>
+                       </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -877,12 +1266,20 @@ export default function CreateProductPage() {
                 Cancel
               </Button>
               <div className="flex gap-2">
-                <Button type="submit" variant="outline" disabled={isSubmitting}>
-                  Save as Draft
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Creating...' : 'Create Product'}
-                </Button>
+                {activeTab !== 'advanced' ? (
+                  <Button type="button" onClick={handleNext}>
+                    Next
+                  </Button>
+                ) : (
+                  <>
+                    <Button type="submit" variant="outline" disabled={isSubmitting}>
+                      Save as Draft
+                    </Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? 'Creating...' : 'Create Product'}
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -907,6 +1304,7 @@ export default function CreateProductPage() {
                         {watchName || 'Product Name'}
                       </h3>
                       <p className="text-sm text-muted-foreground mt-1">
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                         {categoryList.find((c: any) => c.id === watchCategoryId)?.name || 'Category'}
                       </p>
                     </div>

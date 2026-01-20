@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 declare module 'stripe' {
   // Minimal ambient types for Stripe to satisfy TypeScript in the frontend
   const Stripe: any
@@ -43,7 +44,7 @@ declare namespace Stripe {
 }
 
 declare module 'stripe' {
-  import StripeType = Stripe
+  // import StripeType = Stripe
   const Stripe: any
   export default Stripe
   export = Stripe

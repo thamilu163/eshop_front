@@ -51,6 +51,7 @@ export default function AdvancedSearch({ onSearch }: AdvancedSearchProps) {
   const startVoiceSearch = () => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = (window as Record<string, unknown>).webkitSpeechRecognition || (window as Record<string, unknown>).SpeechRecognition;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const recognition: any = new (SpeechRecognition as new () => any)();
 
       recognition.continuous = false;
@@ -60,6 +61,7 @@ export default function AdvancedSearch({ onSearch }: AdvancedSearchProps) {
       recognition.onstart = () => setIsListening(true);
       recognition.onend = () => setIsListening(false);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       recognition.onresult = (event: any) => {
         const transcript = (event.results as Array<Array<{transcript: string}>>)[0][0].transcript;
         setQuery(transcript);

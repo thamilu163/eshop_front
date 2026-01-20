@@ -16,17 +16,15 @@ export default function AccessDeniedPage() {
   const router = useRouter();
   const { data: session } = useSession();
 
-  console.log('[AccessDenied] Page loaded');
-  console.log('[AccessDenied] User:', session?.user?.email);
-  console.log('[AccessDenied] Roles:', session?.roles?.join(', '));
+  /* console.log removed */
 
   const handleGoHome = () => {
-    console.log('[AccessDenied] Redirecting to home');
+    /* console.log removed */
     router.push('/');
   };
 
   const handleSignOut = async () => {
-    console.log('[AccessDenied] Signing out');
+    /* console.log removed */
     await signOut({ callbackUrl: '/login' });
   };
 

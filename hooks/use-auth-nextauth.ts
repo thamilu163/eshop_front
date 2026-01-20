@@ -67,6 +67,7 @@ export function useAuth(): UseAuthReturn {
     if (!session?.user) return null;
     
     return {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       id: (session.user as any).id ?? '',
       email: session.user.email ?? '',
       name: session.user.name ?? '',

@@ -71,12 +71,7 @@ interface LoginFormProps {
   rateLimitInfo?: RateLimitInfo;
 }
 
-function generateStateToken() {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID().replace(/-/g, '');
-  }
-  return Math.random().toString(36).slice(2, 18);
-}
+
 
 function getErrorMessage(status?: number): string {
   switch (status) {
@@ -174,7 +169,7 @@ export function LoginForm({
 
         setShowSuccess(true);
         await new Promise((resolve) => setTimeout(resolve, 500));
-        router.push(redirectTo || '/dashboard');
+        router.push(redirectTo || '/customer/dashboard');
       } catch (_err) {
         // Mutation errors are surfaced via displayError and toast in the hook
       }

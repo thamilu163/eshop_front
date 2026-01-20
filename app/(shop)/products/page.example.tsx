@@ -16,7 +16,6 @@
 
 import { Suspense } from 'react';
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
 import { z } from 'zod';
 import { PageResponseSchema } from '@/lib/api/api-types';
 import { typedApiClient } from '@/lib/api/api-client-v2';
@@ -55,7 +54,7 @@ const ProductSchema = z.object({
   createdAt: z.string().datetime(),
 });
 
-type Product = z.infer<typeof ProductSchema>;
+
 
 const ProductPageResponseSchema = PageResponseSchema(ProductSchema);
 

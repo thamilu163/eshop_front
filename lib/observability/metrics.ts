@@ -1,3 +1,5 @@
+import { logger } from '@/lib/observability/logger';
+
 export function recordMetric(name: string, value: number, tags?: Record<string, unknown>) {
-  console.info('metric', { name, value, tags });
+  logger.info('metric', { name, value, tags });
 }

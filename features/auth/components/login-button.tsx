@@ -87,7 +87,7 @@ export interface LoginButtonProps {
  * @returns Validated safe URL or default dashboard
  */
 function validateCallbackUrl(url: string | undefined): string {
-  const DEFAULT_URL = '/dashboard';
+  const DEFAULT_URL = '/customer/dashboard';
   
   if (!url) return DEFAULT_URL;
   
@@ -199,13 +199,13 @@ export function LoginButton({
       sessionStorage.setItem('oauth_state', state);
       sessionStorage.setItem('oauth_nonce', nonce);
       
-      if (safeCallbackUrl !== '/dashboard') {
+      if (safeCallbackUrl !== '/customer/dashboard') {
         sessionStorage.setItem('oauth_redirect', safeCallbackUrl);
       }
       
       // Use NextAuth's signin endpoint with Keycloak provider
       const params = new URLSearchParams();
-      if (safeCallbackUrl !== '/dashboard') {
+      if (safeCallbackUrl !== '/customer/dashboard') {
         params.set('callbackUrl', safeCallbackUrl);
       }
 

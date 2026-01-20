@@ -183,6 +183,7 @@ interface RootLayoutProps {
 export default async function RootLayout({ children }: RootLayoutProps) {
   // Read per-request headers to expose the CSP nonce to client code via meta tag
   const h = await headers();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const nonce = (h as any).get?.('x-csp-nonce') ?? undefined;
   return (
     <html

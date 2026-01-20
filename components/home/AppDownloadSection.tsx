@@ -70,6 +70,7 @@ export function AppDownloadSection({
           height={256}
           className="w-48 sm:w-56 md:w-64 h-auto object-contain drop-shadow-2xl"
           priority={false}
+          unoptimized
         />
       </div>
     </section>

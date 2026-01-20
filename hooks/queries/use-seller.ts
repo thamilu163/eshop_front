@@ -22,7 +22,8 @@ export function useStoreExists() {
 export function useCreateStore() {
   const queryClient = useQueryClient();
   return useMutation<StoreDTO, unknown, Partial<StoreDTO>>({
-    mutationFn: (storeData) => sellerApi.createStore(storeData),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mutationFn: (storeData) => sellerApi.createStore(storeData as any),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.seller.store() });
       queryClient.invalidateQueries({ queryKey: queryKeys.seller.storeExists() });

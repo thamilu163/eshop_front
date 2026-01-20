@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { useCartStore, selectCartItems, selectCartTotal } from '@/store/cart-store';
 import { formatCurrency } from '@/lib/utils';
-import { ShoppingBag, X } from 'lucide-react';
+import { ShoppingBag } from 'lucide-react';
 
 /**
  * Cart Preview Component - Mini Cart

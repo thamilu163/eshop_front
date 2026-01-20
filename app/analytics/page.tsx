@@ -8,11 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { 
   BarChart3,
   TrendingUp,
-  TrendingDown,
   ShoppingBag,
-  CreditCard,
   Heart,
-  Calendar,
   Target,
   AlertTriangle,
   DollarSign,
@@ -229,7 +226,7 @@ export default function AnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {analyticsData.categories.map((category, index) => (
+                  {analyticsData.categories.map((category) => (
                     <div key={category.name} className="flex items-center gap-4">
                       <div className="w-32 text-sm font-medium">{category.name}</div>
                       <div className="flex-1">
@@ -286,7 +283,7 @@ export default function AnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {analyticsData.spending.monthlyData.map((month, index) => (
+                  {analyticsData.spending.monthlyData.map((month) => (
                     <div key={month.month} className="flex items-center gap-4">
                       <div className="w-12 text-sm font-medium">{month.month}</div>
                       <div className="flex-1">

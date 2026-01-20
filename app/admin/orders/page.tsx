@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuthStore } from '@/store/auth-store';
+import { usePermissions } from '@/hooks/use-permissions';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,9 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { UserRole } from '@/types';
-import Header from '@/components/layout/header';
-import Sidebar from '@/components/layout/sidebar';
+
 import { 
   ShoppingBag, 
   Search, 
@@ -22,12 +20,8 @@ import {
   Truck, 
   Package,
   XCircle,
-  AlertCircle,
-  TrendingUp,
-  DollarSign,
-  Users
+  AlertCircle
 } from 'lucide-react';
-import axios from 'axios';
 import apiClient from '@/lib/axios';
 
 interface Order {
@@ -71,7 +65,7 @@ interface ApiResponse<T> {
 }
 
 export default function AdminOrdersPage() {
-  const { user, isAuthenticated, token } = useAuthStore();
+  const { user, isAuthenticated, isLoading: authLoading, isAdmin } = usePermissions();
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,18 +75,26 @@ export default function AdminOrdersPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
+  // Redirect if not authenticated or not admin
   useEffect(() => {
+    if (authLoading) return; // Wait for auth to load
+    
     if (!isAuthenticated) {
       router.push('/auth/login');
       return;
     }
-    if (!user?.roles?.includes(UserRole.ADMIN)) {
-      router.push('/');
-      return;
+
+    if (!isAdmin) {
+      router.push('/admin/dashboard'); // Redirect to dashboard if authenticated but not authorized
     }
-    
-    fetchOrders();
-  }, [isAuthenticated, user, router, currentPage]);
+  }, [authLoading, isAuthenticated, isAdmin, router]);
+
+  // Fetch orders when page changes
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && isAdmin) {
+      fetchOrders();
+    }
+  }, [authLoading, isAuthenticated, user, currentPage]);
 
   const fetchOrders = async () => {
     try {
@@ -117,6 +119,7 @@ export default function AdminOrdersPage() {
   };
 
   const getStatusBadge = (status: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const statusConfig: Record<string, { color: string; icon: any; label: string }> = {
       'PENDING': { color: 'bg-yellow-100 text-yellow-800', icon: Clock, label: 'Pending' },
       'CONFIRMED': { color: 'bg-blue-100 text-blue-800', icon: CheckCircle, label: 'Confirmed' },
@@ -157,13 +160,9 @@ export default function AdminOrdersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <div className="container mx-auto grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6 px-4 md:px-6 py-6">
-        <Sidebar />
-        <main className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold flex items-center gap-2">
                 <ShoppingBag className="h-8 w-8 text-primary" />
@@ -396,8 +395,6 @@ export default function AdminOrdersPage() {
               )}
             </CardContent>
           </Card>
-        </main>
-      </div>
     </div>
   );
 }

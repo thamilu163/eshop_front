@@ -8,11 +8,14 @@ export enum UserRole {
   DELIVERY_AGENT = 'DELIVERY_AGENT',
 }
 
-// Seller types stored in seller_profiles table (not Keycloak roles)
-// Users with SELLER role select their type during onboarding
-export enum SellerType {
+// Identity types for compliance & KYC
+export enum SellerIdentityType {
   INDIVIDUAL = 'INDIVIDUAL',
   BUSINESS = 'BUSINESS',
+}
+
+// Business types for commercial behavior
+export enum SellerBusinessType {
   FARMER = 'FARMER',
   WHOLESALER = 'WHOLESALER',
   RETAILER = 'RETAILER',
@@ -56,8 +59,10 @@ export interface UserDTO {
   panNumber?: string;
   gstinNumber?: string;
   businessType?: string;
-  // Explicit seller subtype
-  sellerType?: SellerType;
+  // Refactored seller types
+  sellerIdentityType?: SellerIdentityType;
+  sellerBusinessTypes?: SellerBusinessType[]; // List of business types
+  isOwnProduce?: boolean; // For FARMER business type
   // Delivery agent fields
   vehicleType?: string;
 }
@@ -85,9 +90,10 @@ export interface RegisterRequest {
   panNumber?: string;
   gstinNumber?: string;
   businessType?: string;
-  // Seller type: INDIVIDUAL, BUSINESS, FARMER, WHOLESALER, RETAILER
-  sellerType?: SellerType;
-  // Explicit seller subtype
+  // Seller types (Refactored)
+  sellerIdentityType?: SellerIdentityType;
+  sellerBusinessTypes?: SellerBusinessType[];
+  isOwnProduce?: boolean;
   // Delivery agent fields
   vehicleType?: string;
 }

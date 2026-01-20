@@ -16,23 +16,14 @@ export function RoleBasedRedirect() {
   const pathname = usePathname();
   const hasRedirected = useRef(false);
   
-  console.log('[RoleRedirect] Component rendered');
-  console.log('[RoleRedirect] Status:', status);
-  console.log('[RoleRedirect] Pathname:', pathname);
-  console.log('[RoleRedirect] Session roles:', session?.roles);
-  
   useEffect(() => {
-    console.log('[RoleRedirect] useEffect triggered');
-    
     // Only run redirect logic if we're on the home page AND authenticated
     // AND we haven't already redirected
     if (hasRedirected.current || pathname !== '/' || status !== 'authenticated' || !session) {
-      console.log('[RoleRedirect] Skipping - hasRedirected:', hasRedirected.current, 'pathname:', pathname, 'status:', status);
       return;
     }
     
     const roles = (session.roles || []) as string[];
-    console.log('[RoleRedirect] Processing redirect for roles:', roles);
     
     // Check if there's a callback URL from the search params
     const callbackUrl = searchParams?.get('callbackUrl');
@@ -40,7 +31,6 @@ export function RoleBasedRedirect() {
     // If there's a specific callback URL and it's not the root, use it
     if (callbackUrl && callbackUrl !== '/' && !callbackUrl.includes('/auth/signin')) {
       hasRedirected.current = true;
-      console.log('[RoleRedirect] Redirecting to callback URL:', callbackUrl);
       router.push(callbackUrl);
       return;
     }
@@ -50,10 +40,7 @@ export function RoleBasedRedirect() {
     // We only handle CUSTOMER here
     if (roles.includes('CUSTOMER') && !roles.includes('ADMIN') && !roles.includes('SELLER')) {
       hasRedirected.current = true;
-      console.log('[RoleRedirect] ✅ Redirecting CUSTOMER to /dashboard');
-      router.push('/dashboard');
-    } else {
-      console.log('[RoleRedirect] No redirect - other roles handled by middleware');
+      router.push('/customer/dashboard');
     }
   }, [session, status, router, searchParams, pathname]);
   

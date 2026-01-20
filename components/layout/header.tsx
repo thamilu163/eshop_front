@@ -58,7 +58,7 @@ export default function Header({ navItems: providedNavItems }: HeaderProps) {
   const authState = useAuthStore();
   const { user, isAuthenticated } = authState;
   const { data: session, status } = useSession();
-  const { logout } = useAuth();
+  const { } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const kcAuth = useKeycloakAuth();
@@ -116,7 +116,7 @@ export default function Header({ navItems: providedNavItems }: HeaderProps) {
     setDialogOpen(false);
     try {
       await kcAuth.login(window.location.pathname + window.location.search);
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to sign in. Please try again.');
       const fallbackUrl = `${KEYCLOAK_LOGIN_URL}${KEYCLOAK_LOGIN_URL.includes('?') ? '&' : '?'}redirect=${encodeURIComponent(window.location.href)}`;
       window.location.href = fallbackUrl;
@@ -133,7 +133,7 @@ export default function Header({ navItems: providedNavItems }: HeaderProps) {
       queryClient.clear();
       await kcAuth.logout();
       toast.success('Successfully signed out');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Sign out failed. Redirecting to login.');
       const { logout: storeLogout } = useAuthStore.getState();
       storeLogout();
@@ -190,7 +190,7 @@ export default function Header({ navItems: providedNavItems }: HeaderProps) {
           {/* Mobile Hamburger Menu */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open menu">
+              <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open menu" suppressHydrationWarning>
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
@@ -339,6 +339,7 @@ export default function Header({ navItems: providedNavItems }: HeaderProps) {
                           variant="ghost" 
                           aria-label="Cart" 
                           className="relative flex items-center gap-2 rounded-full px-3"
+                          suppressHydrationWarning
                         >
                           <span className="flex items-center gap-2">
                             <ShoppingCart className="h-5 w-5" />
@@ -371,18 +372,16 @@ export default function Header({ navItems: providedNavItems }: HeaderProps) {
                 </>
               )}
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size={isUserAuthenticated ? "icon" : "default"}
-                    className={cn(
-                      "mr-2 rounded-full",
-                      !isUserAuthenticated && "hover:bg-accent border px-4 font-semibold"
-                    )}
-                    aria-label="Profile"
-                  >
-                    {isUserAuthenticated ? (
+              {isUserAuthenticated && currentUser ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="mr-2 rounded-full"
+                      aria-label="Profile"
+                      suppressHydrationWarning
+                    >
                       <Avatar className="h-8 w-8">
                         {currentUser?.name ? (
                           <>
@@ -400,71 +399,64 @@ export default function Header({ navItems: providedNavItems }: HeaderProps) {
                           </AvatarFallback>
                         )}
                       </Avatar>
-                    ) : (
-                      <span className="flex items-center gap-2 text-sm">
-                        <User className="h-4 w-4" />
-                        Sign In / Join
-                      </span>
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
+                    </Button>
+                  </DropdownMenuTrigger>
 
-                <DropdownMenuContent align="end" className="w-56">
-                  {isUserAuthenticated && currentUser ? (
-                    <>
-                      <DropdownMenuLabel className="font-normal">
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-medium">
-                            {currentUser?.name ??
-                              ('username' in currentUser ? currentUser.username : 'Account')}
-                          </p>
-                          {currentUser?.email && (
-                            <p className="text-muted-foreground text-xs">{currentUser.email}</p>
-                          )}
-                        </div>
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link
-                          href={isSeller ? '/seller/profile' : '/settings/profile'}
-                          className="cursor-pointer"
-                        >
-                          My Profile
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/orders" className="cursor-pointer">
-                          Orders
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem disabled={isPending}>
-                        <button
-                          onClick={handleLogout}
-                          disabled={isPending}
-                          className="flex w-full items-center gap-2 text-left"
-                        >
-                          {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                          {isPending ? 'Signing out...' : 'Logout'}
-                        </button>
-                      </DropdownMenuItem>
-                    </>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium">
+                          {currentUser?.name ??
+                            ('username' in currentUser ? currentUser.username : 'Account')}
+                        </p>
+                        {currentUser?.email && (
+                          <p className="text-muted-foreground text-xs">{currentUser.email}</p>
+                        )}
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href={isSeller ? '/seller/profile' : '/settings'}
+                        className="cursor-pointer"
+                      >
+                        My Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/orders" className="cursor-pointer">
+                        Orders
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem disabled={isPending}>
+                      <button
+                        onClick={handleLogout}
+                        disabled={isPending}
+                        className="flex w-full items-center gap-2 text-left"
+                      >
+                        {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                        {isPending ? 'Signing out...' : 'Logout'}
+                      </button>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button
+                  variant="ghost"
+                  onClick={handleLogin}
+                  disabled={isPending}
+                  className="mr-2 rounded-full hover:bg-accent border px-4 font-semibold"
+                  aria-label="Sign In"
+                >
+                  {isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
-                    <>
-                      <DropdownMenuItem disabled={isPending}>
-                        <button
-                          onClick={handleLogin}
-                          disabled={isPending}
-                          className="flex w-full items-center gap-2 text-left"
-                        >
-                          {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                          {isPending ? 'Redirecting...' : 'Sign / sign up'}
-                        </button>
-                      </DropdownMenuItem>
-                    </>
+                    <User className="mr-2 h-4 w-4" />
                   )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  {isPending ? 'Redirecting...' : 'Sign In / Join'}
+                </Button>
+              )}
             </div>
           </TooltipProvider>
         </div>

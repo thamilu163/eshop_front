@@ -48,7 +48,9 @@ export function useWishlistToggle(product: ProductDTO) {
         originalPrice: product.price,
         image: product.imageUrl ?? '',
         category: product.category?.name ?? '',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         rating: (product as any).averageRating ?? 0, // TODO: Add to ProductDTO
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         reviews: (product as any).reviewCount ?? 0, // TODO: Add to ProductDTO
         inStock: product.stockQuantity > 0,
         priceDropAlert: false,

@@ -16,6 +16,7 @@ import { getRequestLogger } from '@/lib/observability/logger'
  * 
  * Stream order updates using Server-Sent Events
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function GET(request: NextRequest, context: any) {
   const paramsObj = await Promise.resolve(context?.params);
   const orderId = String(paramsObj?.id || '');
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest, context: any) {
         const heartbeat = setInterval(() => {
           try {
             controller.enqueue(encoder.encode(': heartbeat\n\n'))
-          } catch (error) {
+          } catch (_error) {
             clearInterval(heartbeat)
           }
         }, 30000) // Every 30 seconds

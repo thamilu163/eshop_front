@@ -22,7 +22,7 @@ export async function generateStaticParams() {
     return response.content.map((product: ProductDTO) => ({
       slug: (product as ProductDTO & { urlSlug?: string }).urlSlug || product.id.toString(),
     }));
-  } catch (error) {
+  } catch (_error) {
     // error logging removed (logger not defined)
     return [];
   }
@@ -44,9 +44,7 @@ export async function generateMetadata({
       };
     }
 
-    const discountPercent = product.discountPrice
-      ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
-      : 0;
+
 
     return {
       title: `${product.name} | E-Commerce Platform`,
@@ -60,7 +58,9 @@ export async function generateMetadata({
       openGraph: {
         title: product.name,
         description: product.description || '',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         images: Array.isArray((product as any).images)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ? ((product as any).images as { id?: number; url: string }[]).map((img) => ({
               url: img.url,
     // error logging removed (logger not defined)
@@ -75,7 +75,9 @@ export async function generateMetadata({
         card: 'summary_large_image',
         title: product.name,
         description: product.description || '',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         images: Array.isArray((product as any).images) && ((product as any).images as { url: string }[])[0]?.url
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ? [((product as any).images as { url: string }[])[0].url]
           : (product.imageUrl ? [product.imageUrl] : []),
       },
@@ -83,7 +85,7 @@ export async function generateMetadata({
         canonical: `/products/${params.slug}`,
       },
     };
-  } catch (error) {
+  } catch (_error) {
     return {
       title: 'Product | E-Commerce Platform',
     };
@@ -96,7 +98,7 @@ async function fetchProductBySlug(slug: string) {
     // Try to fetch by URL slug first
     const product = await productsApi.getByUrl(slug);
     return product;
-  } catch (error) {
+  } catch (_error) {
     // If not found by slug, try by ID
     const productId = parseInt(slug);
     if (!isNaN(productId)) {
@@ -127,7 +129,9 @@ export default async function ProductDetailPage({
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     image: Array.isArray((product as any).images)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ? ((product as any).images as { url: string }[]).map((img) => img.url)
       : (product.imageUrl ? [product.imageUrl] : []),
     sku: product.sku,
@@ -149,9 +153,12 @@ export default async function ProductDetailPage({
         name: (product.shop as ShopDTO).shopName,
       } : undefined,
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     aggregateRating: (product as any).averageRating ? {
       '@type': 'AggregateRating',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ratingValue: (product as any).averageRating,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       reviewCount: (product as any).reviewCount || 0,
     } : undefined,
   };

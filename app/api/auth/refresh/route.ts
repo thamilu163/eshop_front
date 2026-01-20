@@ -29,7 +29,7 @@ import { logger } from '@/lib/observability/logger';
  * - NextAuth automatic refresh in jwt() callback
  * - Manual refresh via signIn() with refresh_token
  */
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   logger.warn('Legacy refresh endpoint called - use NextAuth session refresh instead');
   
   return NextResponse.json(

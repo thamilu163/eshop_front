@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -55,7 +55,7 @@ export function SkipToContent() {
     // Focus without scrolling, then scroll with respect to motion preference
     try {
       (target as HTMLElement).focus({ preventScroll: true });
-    } catch (err) {
+    } catch (_err) {
       // ignore focus errors on some elements
     }
 

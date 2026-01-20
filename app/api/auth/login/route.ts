@@ -197,10 +197,18 @@ function setAuthCookies(
   
   // Set access token cookie with dynamic expiry from backend
   if (tokens.accessToken) {
+    if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+       console.log('Setting accessToken cookie. Length:', tokens.accessToken.length);
+        // eslint-disable-next-line no-console
+       console.log('Cookie options:', { ...cookieBase, maxAge: tokens.expiresIn });
+    }
     response.cookies.set('accessToken', tokens.accessToken, {
       ...cookieBase,
       maxAge: tokens.expiresIn,
     });
+  } else {
+    console.warn('Login success but NO accessToken to set in cookie!');
   }
   
   // Set refresh token cookie (longer expiry)
@@ -269,7 +277,7 @@ export async function POST(request: NextRequest) {
     let rawBody: unknown;
     try {
       rawBody = await request.json();
-    } catch (parseError) {
+    } catch (_parseError) {
       logger.warn('Login rejected - invalid JSON', { requestId });
       return NextResponse.json(
         { error: 'Invalid JSON in request body', requestId },
@@ -405,7 +413,7 @@ export async function POST(request: NextRequest) {
     let backendData: unknown;
     try {
       backendData = await backendResponse.json();
-    } catch (jsonError) {
+    } catch (_jsonError) {
       logger.error('Backend response parse failed', { requestId });
       return NextResponse.json(
         sanitizeErrorForClient(502, requestId),
@@ -471,7 +479,11 @@ export async function POST(request: NextRequest) {
     // -------------------------------------------------------------------------
     const nextResponse = NextResponse.json(
       { 
-        user, 
+        user,
+        accessToken, // camelCase
+        access_token: accessToken, // snake_case for authService/axios types
+        refreshToken,
+        refresh_token: refreshToken,
         success: true,
         requestId,
       },

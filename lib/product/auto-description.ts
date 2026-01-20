@@ -9,6 +9,7 @@ export interface ProductData {
   categoryName?: string
   subCategoryName?: string
   brandName?: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any
 }
 

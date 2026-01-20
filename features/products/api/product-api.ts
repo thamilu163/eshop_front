@@ -55,6 +55,7 @@ export const productApi = {
   },
 
   getCategories: async (): Promise<CategoryDTO[]> => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data } = await apiClient.get<any>(API_ENDPOINTS.CATEGORIES.LIST);
     // Backend returns: { success: true, data: { data: [...], pagination: {...} } }
     // Extract the actual array from the nested structure
@@ -71,6 +72,7 @@ export const productApi = {
   },
 
   getCategoryTree: async (): Promise<CategoryDTO[]> => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data } = await apiClient.get<any>(API_ENDPOINTS.CATEGORIES.TREE);
     // Backend returns: { success: true, data: [...] } for tree endpoint
     if (data?.data && Array.isArray(data.data)) {
@@ -83,6 +85,7 @@ export const productApi = {
   },
 
   getBrands: async (): Promise<BrandDTO[]> => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data } = await apiClient.get<any>(API_ENDPOINTS.BRANDS.LIST);
     // Handle nested response structure
     if (data?.data?.data && Array.isArray(data.data.data)) {

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { logger } from '@/lib/observability/logger';
 
 interface WishlistItem {
   id: number;
@@ -111,7 +112,7 @@ export const useWishlistStore = create<WishlistState>()(
         if (item) {
           // Add to cart logic here
           if (process.env.NODE_ENV === 'development') {
-            console.log('Moving to cart:', item);
+            logger.debug('Moving to cart:', { item });
           }
           
           // Remove from wishlist

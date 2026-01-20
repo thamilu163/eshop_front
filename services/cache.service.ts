@@ -4,9 +4,9 @@
  */
 
 export class CacheService {
-  private cache: Map<string, { data: any; expiry: number }> = new Map();
+  private cache: Map<string, { data: unknown; expiry: number }> = new Map();
 
-  set(key: string, data: any, ttl: number = 300000): void {
+  set(key: string, data: unknown, ttl: number = 300000): void {
     // Default TTL: 5 minutes
     const expiry = Date.now() + ttl;
     this.cache.set(key, { data, expiry });

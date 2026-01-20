@@ -1,17 +1,16 @@
 /**
  * Next.js Proxy with NextAuth Protection (Next.js 16+)
- *
- * Renamed from middleware.ts to proxy.ts following Next.js 16 conventions.
+ * 
  * Single source of truth for authentication and role-based routing.
- * Prevents redirect loops by handling all redirects here.
- *
- * @module proxy
+ * Handles RBAC, CSP headers, redirects, and rate limiting.
+ * Renamed from middleware.ts to proxy.ts per project conventions.
  */
 
 import { getToken } from 'next-auth/jwt';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { logger } from '@/lib/observability/logger';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/security/rate-limiter';
 
 /**
  * Generate a random CSP nonce for inline scripts/styles
@@ -26,7 +25,6 @@ export async function proxy(req: NextRequest) {
   logger.debug('[proxy] Request received', { pathname });
 
   // CRITICAL: Skip proxy for public routes and static assets
-  // This prevents redirect loops
   const shouldSkipProxy =
     pathname === '/login' ||
     pathname === '/register' ||
@@ -42,18 +40,15 @@ export async function proxy(req: NextRequest) {
     pathname.match(/\.(ico|png|jpg|jpeg|svg|webp|gif|css|js|json|webmanifest)$/);
 
   if (shouldSkipProxy) {
-    logger.debug('[proxy] Skipping - public route or static asset', { pathname });
     return NextResponse.next();
   }
 
-  // Generate CSP nonce for security headers
+  // Generate CSP nonce
   const nonce = generateNonce();
   const response = NextResponse.next();
-  
-  // Add CSP nonce to response headers (available in layout.tsx)
   response.headers.set('x-csp-nonce', nonce);
 
-  // Define public routes that don't require authentication (industry standard for ecommerce)
+  // Allow public routes without authentication
   const publicRoutes = [
     '/',
     '/products',
@@ -71,110 +66,82 @@ export async function proxy(req: NextRequest) {
       pathname === route || pathname.startsWith(`${route}/`) || pathname.startsWith(`${route}?`)
   );
 
-  // Check authentication
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
-  logger.debug('[proxy] Authentication check', {
-    pathname,
-    hasToken: !!token,
-    isPublicRoute,
-  });
-
-  // Allow public routes without authentication (guest browsing)
   if (isPublicRoute && !token) {
-    logger.debug('[proxy] Public route access granted', { pathname, authenticated: false });
     return response;
   }
 
-  // Not logged in and not a public route → redirect to login
   if (!token) {
-    logger.info('[proxy] Redirecting to login', { pathname, reason: 'unauthenticated' });
+    logger.info('[proxy] Redirecting to login', { pathname });
     const loginUrl = new URL('/login', req.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // Get user roles from token
+  // Rate Limiting (Applied to authenticated/protected traffic)
+  // Using 'x-forwarded-for' or falling back to 'anon'.
+  // In production, ensure your reverse proxy (Vercel/Cloudflare) standardizes this header.
+  try {
+    const ip = req.headers.get('x-forwarded-for') || 'anon';
+    
+    // STRICT limit for auth routes (login, register, session)
+    // RELAXED limit for general API (dashboard data, products, etc)
+    const isAuthApi = pathname.startsWith('/api/auth') || pathname.startsWith('/auth');
+    const limitConfig = isAuthApi ? RATE_LIMITS.auth : RATE_LIMITS.authenticated;
+    
+    const rateLimitResult = checkRateLimit(ip, limitConfig);
+    
+    if (!rateLimitResult.allowed) {
+        logger.warn('[proxy] Rate limit exceeded', { ip, pathname });
+        return NextResponse.json(
+            { message: 'Too many requests', retryAfter: rateLimitResult.retryAfter },
+            { status: 429, headers: { 'Retry-After': String(rateLimitResult.retryAfter || 60) } }
+        );
+    }
+  } catch (error) {
+    // Fail safe: If rate limiting throws, log it but don't block the request unless critical
+    logger.error('[proxy] Rate limit error', { error });
+  }
+
+  // Role-based access control
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const roles = (token as any).roles || [];
   const isAdmin = roles.includes('ADMIN');
   const isSeller = roles.includes('SELLER');
   const isDeliveryAgent = roles.includes('DELIVERY_AGENT');
 
-  logger.debug('[proxy] User authenticated', {
-    pathname,
-    email: token.email,
-    roles,
-    isAdmin,
-    isSeller,
-    isDeliveryAgent,
-  });
-
-  // Role-based access control for protected routes
-  if (pathname.startsWith('/seller')) {
-    if (!isSeller) {
-      logger.warn('[proxy] Access denied - insufficient permissions', {
-        pathname,
-        email: token.email,
-        requiredRole: 'SELLER',
-        userRoles: roles,
-      });
-      return NextResponse.redirect(new URL('/access-denied', req.url));
-    }
-    logger.debug('[proxy] SELLER access granted', { pathname, email: token.email });
+  if (pathname.startsWith('/seller') && !isSeller) {
+    return NextResponse.redirect(new URL('/unauthorized', req.url));
   }
 
-  if (pathname.startsWith('/admin')) {
-    if (!isAdmin) {
-      logger.warn('[proxy] Access denied - insufficient permissions', {
-        pathname,
-        email: token.email,
-        requiredRole: 'ADMIN',
-        userRoles: roles,
-      });
-      return NextResponse.redirect(new URL('/access-denied', req.url));
-    }
-    logger.debug('[proxy] ADMIN access granted', { pathname, email: token.email });
+  if (pathname.startsWith('/admin') && !isAdmin) {
+    return NextResponse.redirect(new URL('/unauthorized', req.url));
   }
 
-  if (pathname.startsWith('/delivery')) {
-    if (!isDeliveryAgent) {
-      logger.warn('[proxy] Access denied - insufficient permissions', {
-        pathname,
-        email: token.email,
-        requiredRole: 'DELIVERY_AGENT',
-        userRoles: roles,
-      });
-      return NextResponse.redirect(new URL('/access-denied', req.url));
-    }
-    logger.debug('[proxy] DELIVERY_AGENT access granted', { pathname, email: token.email });
+  if (pathname.startsWith('/delivery') && !isDeliveryAgent) {
+    return NextResponse.redirect(new URL('/unauthorized', req.url));
   }
 
-  // Role-based redirects - ONLY from home page
-  if (isAdmin && pathname === '/') {
-    logger.info('[proxy] Role-based redirect', { email: token.email, role: 'ADMIN', target: '/admin' });
-    return NextResponse.redirect(new URL('/admin', req.url));
+  // Role-based home redirects - only redirect from root path
+  // DO NOT redirect from /admin/* routes - allow all admin sub-routes
+  if (pathname === '/') {
+    if (isAdmin) return NextResponse.redirect(new URL('/admin/dashboard', req.url));
+    if (isSeller) return NextResponse.redirect(new URL('/seller', req.url));
+    if (isDeliveryAgent) return NextResponse.redirect(new URL('/delivery', req.url));
   }
 
-  if (isSeller && pathname === '/') {
-    logger.info('[proxy] Role-based redirect', { email: token.email, role: 'SELLER', target: '/seller' });
-    return NextResponse.redirect(new URL('/seller', req.url));
+  // Redirect /admin (without subpath) to dashboard
+  // This allows /admin/users, /admin/products, etc. to work normally
+  if (pathname === '/admin' && isAdmin) {
+    return NextResponse.redirect(new URL('/admin/dashboard', req.url));
   }
 
-  if (isDeliveryAgent && pathname === '/') {
-    logger.info('[proxy] Role-based redirect', { email: token.email, role: 'DELIVERY_AGENT', target: '/delivery' });
-    return NextResponse.redirect(new URL('/delivery', req.url));
-  }
-
-  logger.debug('[proxy] Access allowed', { pathname, email: token.email });
   return response;
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all paths
-     * Exclusions are handled in the proxy function itself
-     */
     '/(.*)',
   ],
 };

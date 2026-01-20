@@ -5,12 +5,12 @@
 
 export interface AnalyticsEvent {
   event: string;
-  properties?: Record<string, any>;
+  properties?: Record<string, unknown>;
   timestamp?: Date;
 }
 
 export class AnalyticsService {
-  track(event: string, properties?: Record<string, any>): void {
+  track(event: string, properties?: Record<string, unknown>): void {
     if (typeof window === 'undefined') return;
 
     const eventData: AnalyticsEvent = {
@@ -20,6 +20,7 @@ export class AnalyticsService {
     };
 
     // Send to analytics service (Google Analytics, Mixpanel, etc.)
+    // eslint-disable-next-line no-console
     console.log('Analytics Event:', eventData);
   }
 

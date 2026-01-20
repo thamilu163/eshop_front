@@ -32,6 +32,7 @@ export function PromoBannerSection() {
             width={256}
             height={256}
             className="w-32 h-32 sm:w-40 sm:h-40 md:w-56 md:h-56 lg:w-64 lg:h-64 object-contain drop-shadow-2xl"
+            unoptimized
           />
         </div>
       </div>

@@ -10,7 +10,7 @@ import { NextRequest } from 'next/server';
  */
 const ALLOWED_REDIRECT_PREFIXES = [
   '/',
-  '/dashboard',
+  '/customer/dashboard',
   '/products',
   '/account',
   '/customer',

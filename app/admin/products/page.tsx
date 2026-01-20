@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuthStore } from '@/store/auth-store';
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,9 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { UserRole } from '@/types';
-import Header from '@/components/layout/header';
-import Sidebar from '@/components/layout/sidebar';
+
 import { Package, Search, Filter, Plus, Edit, Trash2, Eye, AlertCircle } from 'lucide-react';
 import { apiClient } from '@/lib/axios';
 
@@ -46,8 +44,10 @@ interface ApiResponse<T> {
   };
 }
 
+import { usePermissions } from '@/hooks/use-permissions';
+
 export default function AdminProductsPage() {
-  const { user, isAuthenticated, token } = useAuthStore();
+  const { user, isAuthenticated, isLoading: authLoading, isAdmin } = usePermissions();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,24 +58,46 @@ export default function AdminProductsPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
+  // Redirect if not authenticated or not admin
   useEffect(() => {
+    /* eslint-disable no-console */
+    console.log('AdminProductsPage: Layout Effect', { 
+      authLoading, 
+      isAuthenticated, 
+      isAdmin, 
+      userRoles: user?.roles,
+      userRole: user?.role
+    });
+
+    if (authLoading) return; // Wait for auth to load
+    
     if (!isAuthenticated) {
-      router.push('/auth/login');
-      return;
-    }
-    if (!user?.roles?.includes(UserRole.ADMIN)) {
-      router.push('/');
-      return;
+        console.log('AdminProductsPage: Redirecting - Not Authenticated');
+        router.push('/auth/login');
+        return;
     }
     
-    fetchProducts();
-  }, [isAuthenticated, user, router, currentPage]);
+    if (!isAdmin) {
+        console.log('AdminProductsPage: Redirecting - Not Admin');
+        // If authenticated but not admin, redirect to dashboard instead of login
+        router.push('/admin/dashboard');
+        return;
+    }
+    /* eslint-enable no-console */
+  }, [authLoading, isAuthenticated, isAdmin, router, user]);
+
+  // Fetch products when page changes
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && isAdmin) {
+      fetchProducts();
+    }
+  }, [authLoading, isAuthenticated, user, currentPage]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
       const response = await apiClient.get<ApiResponse<Product>>(
-        `/api/products?page=${currentPage}&size=10`
+        `/api/v1/products?page=${currentPage}&size=10`
       );
       
       if (response.data.success && response.data.data) {
@@ -125,12 +147,26 @@ export default function AdminProductsPage() {
     return colors[categoryName] || 'bg-gray-100 text-gray-800';
   };
 
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Don't render content if not admin (will redirect)
+  if (!isAuthenticated || !isAdmin) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <div className="container mx-auto grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6 px-4 md:px-6 py-6">
-        <Sidebar />
-        <main className="space-y-6">
+    <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
@@ -355,8 +391,6 @@ export default function AdminProductsPage() {
               )}
             </CardContent>
           </Card>
-        </main>
-      </div>
     </div>
   );
 }

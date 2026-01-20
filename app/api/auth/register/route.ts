@@ -252,7 +252,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     let rawBody: unknown;
     try {
       rawBody = await request.json();
-    } catch (parseError) {
+    } catch (_parseError) {
       logger.warn('Registration rejected - invalid JSON', { requestId });
       return NextResponse.json(
         { error: 'Invalid JSON in request body', code: 'INVALID_JSON', requestId },
@@ -392,7 +392,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     let backendData: unknown;
     try {
       backendData = await backendResponse.json();
-    } catch (jsonError) {
+    } catch (_jsonError) {
       logger.error('Backend response parse failed', { requestId });
       return NextResponse.json(
         sanitizeErrorForClient(502, requestId),

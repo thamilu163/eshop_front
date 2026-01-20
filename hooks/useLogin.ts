@@ -39,17 +39,19 @@ export const useLogin = (options: UseLoginOptions = {}) => {
         if (!options.disableRedirect) {
           // Role-based redirect: customers go to home page, others to dashboard
           try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const role = (userInfo as any)?.role || (userInfo as any)?.roles?.[0];
             const isCustomer =
               role === 'CUSTOMER' ||
               role === 'customer' ||
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               (Array.isArray((userInfo as any)?.roles) && (userInfo as any).roles.includes('CUSTOMER'));
 
-            const target = options.redirectTo ?? (isCustomer ? '/' : '/dashboard');
+            const target = options.redirectTo ?? (isCustomer ? '/' : '/customer/dashboard');
             router.push(target);
-          } catch (e) {
+          } catch (_e) {
             // Fallback to previous default if anything goes wrong
-            router.push(options.redirectTo ?? '/dashboard');
+            router.push(options.redirectTo ?? '/customer/dashboard');
           }
         }
 

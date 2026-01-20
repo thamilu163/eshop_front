@@ -4,7 +4,7 @@
  */
 
 import { type JWT } from 'next-auth/jwt';
-import { AUTH_ERRORS, type AuthErrorCode } from './errors';
+import { AUTH_ERRORS } from './errors';
 import { logger } from '@/lib/observability/logger';
 
 /**
@@ -56,7 +56,7 @@ export function extractRoles(accessToken: string): string[] {
     
     return payload.realm_access?.roles ?? [];
   } catch (error) {
-    console.warn('Failed to extract roles from access token:', error);
+    logger.warn('[auth] Failed to extract roles from access token:', { error });
     return [];
   }
 }
@@ -190,9 +190,10 @@ export async function refreshAccessToken(
         roles: extractRoles(data.access_token),
         error: undefined,
       };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       // Handle abort separately
-      const isAbort = err?.name === 'AbortError';
+      // const isAbort = err?.name === 'AbortError';
       const code = err?.code || err?.name || 'UNKNOWN_ERROR';
 
       logger.warn('[auth] Token refresh network error', { attempt, code, message: err?.message });
@@ -265,7 +266,7 @@ export async function logoutFromKeycloak(
 
       if (attempt === maxRetries) {
         const errorText = await response.text().catch(() => 'Unknown error');
-        console.error('Keycloak logout failed after retries:', {
+        logger.error('[auth] Keycloak logout failed after retries:', {
           status: response.status,
           error: errorText,
         });
@@ -273,7 +274,7 @@ export async function logoutFromKeycloak(
       }
     } catch (error) {
       if (attempt === maxRetries) {
-        console.error('Keycloak logout network error:', error);
+        logger.error('[auth] Keycloak logout network error:', { error });
         return { success: false, error: 'Network error' };
       }
       

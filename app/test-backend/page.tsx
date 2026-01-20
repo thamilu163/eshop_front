@@ -1,14 +1,11 @@
+/* eslint-disable no-console */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useSession } from 'next-auth/react';
 import { useState } from 'react';
 
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  description?: string;
-}
+
 
 interface ApiResponse {
   success: boolean;

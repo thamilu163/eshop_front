@@ -11,7 +11,9 @@
 import Stripe from 'stripe'
 import { logger } from '@/lib/observability/logger'
 
-let _stripe: any = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _stripe: any | null = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ensureStripe(): any {
   if (_stripe) return _stripe
   const key = process.env.STRIPE_SECRET_KEY

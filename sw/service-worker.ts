@@ -1,4 +1,5 @@
 /// <reference lib="webworker" />
+/* eslint-disable no-console */
 
 // Service Worker for PWA functionality - Enterprise-grade TypeScript implementation
 // CRITICAL: Uses IndexedDB (idb-keyval) instead of localStorage (which is unavailable in SW context)

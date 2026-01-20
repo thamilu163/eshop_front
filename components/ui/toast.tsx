@@ -228,9 +228,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 // PWA Install Prompt Component
 export function PWAInstallPrompt() {
   const [showInstall, setShowInstall] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [deferredPrompt, setDeferredPrompt] = useState<any | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handler = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);

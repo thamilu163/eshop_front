@@ -15,10 +15,13 @@ const REQUIRED_ENV_VARS = [
 /**
  * Optional Keycloak environment variables (for confidential clients)
  */
-const OPTIONAL_ENV_VARS = ['KEYCLOAK_CLIENT_SECRET'] as const;
+/**
+ * Optional Keycloak environment variables (for confidential clients)
+ */
+// const OPTIONAL_ENV_VARS = ['KEYCLOAK_CLIENT_SECRET'] as const;
 
-type RequiredEnvVar = (typeof REQUIRED_ENV_VARS)[number];
-type OptionalEnvVar = (typeof OPTIONAL_ENV_VARS)[number];
+// type RequiredEnvVar = (typeof REQUIRED_ENV_VARS)[number];
+// type OptionalEnvVar = (typeof OPTIONAL_ENV_VARS)[number];
 
 /**
  * Validated Keycloak configuration

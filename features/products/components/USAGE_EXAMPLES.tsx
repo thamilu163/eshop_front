@@ -93,7 +93,7 @@ export function QuickActionsBar({ product }: { product: ProductDTO }) {
       } else {
         toast.success('Removed from wishlist');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update wishlist');
     } finally {
       setIsLoading(false);
@@ -189,7 +189,7 @@ async function ProductList() {
 // Example 6: Filtering with Loading States
 // ============================================================================
 
-'use client';
+
 
 // Mock component for demonstration
 function ProductGridContent({ category }: { category: string }) {

@@ -21,6 +21,7 @@ const breaker = new CircuitBreaker({
 function normalizeError(err: unknown): Error {
   if (err instanceof Error) return err;
   if (typeof err === 'object' && err !== null) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const message = (err as any).message || JSON.stringify(err);
     const error = new Error(message);
     Object.assign(error, err);

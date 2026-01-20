@@ -2,6 +2,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'ax
 import axiosRetry from 'axios-retry';
 import { ApiError } from '@/types';
 import { env } from '@/env';
+import { logger } from '@/lib/observability/logger';
 
 // Token management utilities for Keycloak
 /**
@@ -128,7 +129,7 @@ const authRequestInterceptor = async (config: InternalAxiosRequestConfig) => {
   return config;
 };
 
-const authRequestErrorHandler = (error: any) => {
+const authRequestErrorHandler = (error: unknown) => {
   return Promise.reject(error);
 };
 
@@ -207,8 +208,8 @@ const loggedErrors = new Set<string>();
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('✅ API Response:', response.status, response.config.url);
-      console.log('📨 Response data:', response.data);
+      logger.debug('✅ API Response:', { status: response.status, url: response.config.url });
+      logger.debug('📨 Response data:', response.data);
     }
     return response;
   },
@@ -225,9 +226,9 @@ apiClient.interceptors.response.use(
 
       if (shouldLog && !loggedErrors.has(errorKey)) {
         loggedErrors.add(errorKey);
-        console.error(`❌ API Error [${status || 'network'}] ${url}:`, message);
+        logger.error(`❌ API Error [${status || 'network'}] ${url}:`, { message });
         if (error.response?.data && Object.keys(error.response.data).length > 0) {
-          console.error('   Response:', error.response.data);
+          logger.error('   Response:', { data: error.response.data });
         }
       }
     }

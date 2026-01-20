@@ -61,6 +61,7 @@ export function RegisterForm() {
       toast.success('Account created successfully! Please login.');
       router.push('/login');
     } catch (error: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       logger.error('Registration error', { error: { message: String((error as any)?.message), stack: (error as any)?.stack } });
       const message = ((error as Record<string, unknown>).response as Record<string, unknown>)?.data || 'Registration failed. Please try again.';
       toast.error(String(message));

@@ -16,6 +16,7 @@ type Metrics = {
   topProducts: Array<{ id: string; name: string; sales: number }>;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fetchJson<T = any>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, { ...init, next: { revalidate: 30 } });
   if (!res.ok) {
@@ -41,7 +42,7 @@ async function loadAnalytics(): Promise<Partial<Metrics>> {
     try {
       const payload = await fetchJson(url);
       return [key, payload] as const;
-    } catch (err) {
+    } catch (_err) {
       // Return null for that metric but keep others
       return [key, null] as const;
     }
@@ -49,6 +50,7 @@ async function loadAnalytics(): Promise<Partial<Metrics>> {
 
   const results = await Promise.all(tasks);
   return results.reduce((acc, [k, v]) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (v !== null) (acc as any)[k] = v;
     return acc;
   }, {} as Partial<Metrics>);

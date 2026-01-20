@@ -48,7 +48,7 @@ Sentry.init({
   ],
 
   // Enrich error events with user context
-  beforeSend(event, hint) {
+  beforeSend(event, _hint) {
     // Filter out events from browser extensions
     if (event.exception) {
       const values = event.exception.values || [];

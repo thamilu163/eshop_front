@@ -36,7 +36,7 @@ export async function registerSeller(
     try {
       const errorJson = JSON.parse(errorBody);
       errorMessage = errorJson.detail || errorJson.message || errorJson.error || errorMessage;
-    } catch (e) {
+    } catch (_e) {
       // Not JSON, use raw text
       errorMessage = errorBody || errorMessage;
     }

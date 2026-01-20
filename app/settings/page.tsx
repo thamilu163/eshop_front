@@ -3,11 +3,11 @@
 import { useAuthStore } from '@/store/auth-store';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/header';
 import Sidebar from '@/components/layout/sidebar';
-import { User, Lock, Bell, Globe, Shield, Mail } from 'lucide-react';
+import { User, Lock, Bell, Globe, Shield } from 'lucide-react';
 
 export default function SettingsPage() {
   const { user, isAuthenticated } = useAuthStore();

@@ -5,26 +5,31 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useSellerStore } from '@/features/seller/hooks/use-seller';
+import { useSellerStore, useUpdateStore } from '@/features/seller/hooks/use-seller';
 import { Loader2, Store, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { toast } from 'sonner';
+// import { useState } from 'react';
+// import { toast } from 'sonner';
 
 export default function SellerSettingsPage() {
   const router = useRouter();
   const { data: storeData, isLoading } = useSellerStore();
-  const [isSaving, setIsSaving] = useState(false);
+  const { mutate: updateStore, isPending: isSaving } = useUpdateStore();
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsSaving(true);
+    const formData = new FormData(e.currentTarget);
+    
+    // Construct store update payload
+    const updates = {
+      storeName: formData.get('storeName') as string,
+      description: formData.get('storeDescription') as string,
+      email: formData.get('email') as string,
+      phone: formData.get('phone') as string,
+      address: formData.get('address') as string,
+    };
 
-    // Simulate save operation
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    toast.success('Settings saved successfully');
-    setIsSaving(false);
+    updateStore(updates);
   };
 
   if (isLoading) {
@@ -71,8 +76,10 @@ export default function SellerSettingsPage() {
               <Label htmlFor="storeName">Store Name *</Label>
               <Input
                 id="storeName"
-                defaultValue={storeData?.shopName || ''}
+                name="storeName"
+                defaultValue={storeData?.storeName || ''}
                 placeholder="Enter your store name"
+                required
               />
             </div>
 
@@ -80,9 +87,11 @@ export default function SellerSettingsPage() {
               <Label htmlFor="storeDescription">Store Description</Label>
               <Textarea
                 id="storeDescription"
+                name="storeDescription"
                 defaultValue={storeData?.description || ''}
                 placeholder="Describe your store and products..."
                 rows={4}
+                required
               />
             </div>
 
@@ -91,6 +100,7 @@ export default function SellerSettingsPage() {
                 <Label htmlFor="email">Contact Email</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   defaultValue={storeData?.email || ''}
                   placeholder="store@example.com"
@@ -101,6 +111,7 @@ export default function SellerSettingsPage() {
                 <Label htmlFor="phone">Contact Phone</Label>
                 <Input
                   id="phone"
+                  name="phone"
                   type="tel"
                   defaultValue={storeData?.phone || ''}
                   placeholder="+91 1234567890"
@@ -112,6 +123,7 @@ export default function SellerSettingsPage() {
               <Label htmlFor="address">Business Address</Label>
               <Textarea
                 id="address"
+                name="address"
                 defaultValue={storeData?.address || ''}
                 placeholder="Enter your business address"
                 rows={3}

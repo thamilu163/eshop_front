@@ -28,7 +28,7 @@ const BACKEND_LOGOUT_TIMEOUT_MS = parseInt(process.env.LOGOUT_TIMEOUT_MS || '500
 /**
  * All authentication-related cookies to clear on logout
  */
-const AUTH_COOKIES = ['accessToken', 'refreshToken', 'isAuthenticated', 'sessionId', 'userId'] as const;
+const AUTH_COOKIES = ['accessToken', 'refreshToken', 'isAuthenticated', 'sessionId', 'userId', 'next-auth.session-token', 'next-auth.callback-url', 'next-auth.csrf-token'] as const;
 
 // ============================================================================
 // Helper Functions (Hoisted for Performance)

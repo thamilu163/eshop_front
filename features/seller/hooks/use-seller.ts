@@ -36,7 +36,8 @@ export function useCreateStore() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (storeData: Partial<StoreDTO>) => sellerApi.createStore(storeData),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mutationFn: (storeData: Partial<StoreDTO>) => sellerApi.createStore(storeData as any),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['seller', 'store'] });
       toast.success('Store created successfully');
@@ -53,7 +54,8 @@ export function useUpdateStore() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (storeData: Partial<StoreDTO>) => sellerApi.updateStore(storeData),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mutationFn: (storeData: Partial<StoreDTO>) => sellerApi.updateStore(storeData as any),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['seller', 'store'] });
       toast.success('Store updated successfully');

@@ -10,6 +10,7 @@ type ProductImage = {
 
 let productImages: ProductImage[] = (global as Record<string, unknown>).__PRODUCT_IMAGES_STORE__ as ProductImage[] || [];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function PUT(request: NextRequest, context: any) {
   const paramsObj = await Promise.resolve(context?.params);
   const { productId, imageId } = paramsObj || {};

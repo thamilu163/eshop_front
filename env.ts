@@ -1,6 +1,6 @@
 // src/env.ts
 export const env = {
-  apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8082',
+  apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000',
   apiAuthUrl: process.env.NEXT_PUBLIC_API_AUTH_URL || 'http://localhost:8082/api/auth',
   keycloakUrl: process.env.NEXT_PUBLIC_KEYCLOAK_URL || 'http://localhost:8080',
   appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',

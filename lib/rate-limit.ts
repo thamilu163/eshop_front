@@ -9,6 +9,7 @@ type RateLimitResult = {
   reset: number; // epoch ms
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let upstash: any = undefined; // undefined = not initialized yet
 
 const memStore = new Map<string, { count: number; resetAt: number }>();

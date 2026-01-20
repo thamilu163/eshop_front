@@ -65,6 +65,7 @@ export default function CheckoutPage() {
   const { register, handleSubmit, control, watch, formState: { errors, isSubmitting } } = useForm<CheckoutFormValues>({
     // zodResolver typing may be incompatible with some inferred union/optional shapes;
     // cast to `any` to satisfy the Resolver signature while keeping runtime validation.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(CheckoutSchema) as any,
     defaultValues: {
       shipping: {

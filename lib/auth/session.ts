@@ -26,6 +26,7 @@
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { SignJWT, jwtVerify } from 'jose';
+import { logger } from '@/lib/observability/logger';
 
 // ============================================================================
 // Constants
@@ -116,7 +117,7 @@ function getSecretKey(): Uint8Array {
   
   if (!secret) {
     if (process.env.NODE_ENV !== 'production') {
-      console.warn('SESSION_SECRET is not set in environment (dev-only diagnostic)');
+      logger.warn('SESSION_SECRET is not set in environment (dev-only diagnostic)');
     }
     throw new Error(
       'SESSION_SECRET environment variable is required. ' +
@@ -126,7 +127,7 @@ function getSecretKey(): Uint8Array {
   
   if (secret.length < 32) {
     if (process.env.NODE_ENV !== 'production') {
-      console.warn('SESSION_SECRET length is less than 32 characters (dev-only diagnostic). Length:', secret.length);
+      logger.warn('SESSION_SECRET length is less than 32 characters (dev-only diagnostic).', { length: secret.length });
     }
     throw new Error(
       'SESSION_SECRET must be at least 32 characters for adequate security. ' +
@@ -160,7 +161,7 @@ function getSecretKey(): Uint8Array {
  *   codeVerifier: 'dBjftJeZ4CVP...',
  *   state: 'af0ifjsldkj...',
  *   nonce: 'n-0S6_WzA2M...',
- *   redirectTo: '/dashboard',
+ *   redirectTo: '/customer/dashboard',
  *   createdAt: Date.now(),
  * };
  * await storePkceState(state);
@@ -187,7 +188,7 @@ export async function storePkceState(state: PkceState): Promise<void> {
     path: '/',
   });
   if (process.env.NODE_ENV !== 'production') {
-    console.debug('storePkceState: set pkce cookie', { name: PKCE_COOKIE_NAME, maxAge: PKCE_STATE_MAX_AGE_SECONDS });
+    logger.debug('storePkceState: set pkce cookie', { name: PKCE_COOKIE_NAME, maxAge: PKCE_STATE_MAX_AGE_SECONDS });
   }
 }
 
@@ -316,7 +317,7 @@ export async function createSession(data: SessionData): Promise<void> {
     path: '/',
   });
   if (process.env.NODE_ENV !== 'production') {
-    console.debug('createSession: set session cookie', { name: SESSION_COOKIE_NAME, maxAge: expiresInSeconds });
+    logger.debug('createSession: set session cookie', { name: SESSION_COOKIE_NAME, maxAge: expiresInSeconds });
   }
 }
 
@@ -356,7 +357,7 @@ export async function getSession(): Promise<SessionData | null> {
     return session;
   } catch {
     if (process.env.NODE_ENV !== 'production') {
-      console.warn('getSession: session validation failed or token invalid; destroying session (dev-only diagnostic)');
+      logger.warn('getSession: session validation failed or token invalid; destroying session (dev-only diagnostic)');
     }
     // Any validation error = no session
     await destroySession();

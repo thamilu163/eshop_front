@@ -23,6 +23,7 @@ import {
   TimeoutError,
   ApiError,
 } from './api-types';
+import { logger } from '@/lib/observability/logger';
 
 // ============================================================================
 // Configuration
@@ -94,7 +95,7 @@ axiosRetry(apiClient, {
   },
   onRetry: (retryCount, error, requestConfig) => {
     const url = requestConfig.url || 'unknown';
-    console.warn(`[API] Retry ${retryCount}/${MAX_RETRIES} for ${url}`, {
+    logger.warn(`[API] Retry ${retryCount}/${MAX_RETRIES} for ${url}`, {
       status: error.response?.status,
       message: error.message,
     });
@@ -132,8 +133,9 @@ apiClient.interceptors.request.use(
     (config as ExtendedAxiosRequestConfig).correlationId = correlationId;
     
     // Log request (excluding sensitive data)
+    // Log request (excluding sensitive data)
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, {
+      logger.debug(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, {
         correlationId,
         params: config.params,
         // Don't log request body (may contain sensitive data)
@@ -143,7 +145,7 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('[API] Request interceptor error:', error);
+    logger.error('[API] Request interceptor error:', { error });
     return Promise.reject(error);
   },
 );
@@ -163,7 +165,7 @@ apiClient.interceptors.response.use(
     const correlationId = (response.config as ExtendedAxiosRequestConfig).correlationId;
     
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[API Response] ${response.status} ${response.config.url}`, {
+      logger.debug(`[API Response] ${response.status} ${response.config.url}`, {
         correlationId,
         // Don't log response data (may be large)
       });
@@ -178,7 +180,7 @@ apiClient.interceptors.response.use(
     
     if (circuitBreaker.failures >= CIRCUIT_BREAKER_THRESHOLD) {
       circuitBreaker.state = 'OPEN';
-      console.error('[API] Circuit breaker OPENED due to repeated failures');
+      logger.error('[API] Circuit breaker OPENED due to repeated failures');
     }
     
     const correlationId = (error.config as ExtendedAxiosRequestConfig)?.correlationId;
@@ -218,11 +220,12 @@ apiClient.interceptors.response.use(
         }
       }
     } catch (parseError) {
-      console.error('[API] Failed to parse error response:', parseError);
+      logger.error('[API] Failed to parse error response:', { error: parseError });
     }
     
     // Log error
-    console.error(`[API Error] ${status} ${error.config?.url}`, {
+    // Log error
+    logger.error(`[API Error] ${status} ${error.config?.url}`, {
       correlationId,
       message: errorMessage,
       code: errorCode,

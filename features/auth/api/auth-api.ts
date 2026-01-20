@@ -1,6 +1,6 @@
 import apiClient from '@/lib/axios';
 import { logger } from '@/lib/observability/logger';
-import { LoginRequest, RegisterRequest, AuthResponse, UserDTO, UserRole, SellerType } from '@/types';
+import { LoginRequest, RegisterRequest, AuthResponse, UserDTO, UserRole, SellerIdentityType, SellerBusinessType } from '@/types';
 
 // Time Complexity: O(1) - single HTTP request
 // Space Complexity: O(1) - response data
@@ -97,7 +97,8 @@ export const authApi = {
           panNumber: innerData.panNumber as string | undefined,
           gstinNumber: innerData.gstinNumber as string | undefined,
           businessType: innerData.businessType as string | undefined,
-          sellerType: innerData.sellerType ? (innerData.sellerType as SellerType) : undefined,
+          sellerIdentityType: innerData.sellerIdentityType ? (innerData.sellerIdentityType as SellerIdentityType) : undefined,
+          sellerBusinessTypes: innerData.sellerBusinessTypes ? (innerData.sellerBusinessTypes as SellerBusinessType[]) : undefined,
           // Delivery agent fields
           vehicleType: innerData.vehicleType as string | undefined,
         };

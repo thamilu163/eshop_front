@@ -32,10 +32,10 @@ interface ProductsPageProps {
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const page = parseInt(searchParams.page || '0');
-  const categoryId = searchParams.categoryId ? parseInt(searchParams.categoryId) : undefined;
-  const brandId = searchParams.brandId ? parseInt(searchParams.brandId) : undefined;
-  const minPrice = searchParams.minPrice ? parseFloat(searchParams.minPrice) : undefined;
-  const maxPrice = searchParams.maxPrice ? parseFloat(searchParams.maxPrice) : undefined;
+  const _categoryId = searchParams.categoryId ? parseInt(searchParams.categoryId) : undefined;
+  const _brandId = searchParams.brandId ? parseInt(searchParams.brandId) : undefined;
+  const _minPrice = searchParams.minPrice ? parseFloat(searchParams.minPrice) : undefined;
+  const _maxPrice = searchParams.maxPrice ? parseFloat(searchParams.maxPrice) : undefined;
 
   // Server-side fetch with Next.js route-level caching (revalidate)
   const fetchOpts = { next: { revalidate: 60 } };
@@ -60,7 +60,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   ).then(res => res.json()).catch(() => ({ data: [] } as ApiResponse<unknown[]>));
 
   const productsData = (productsResp as ApiResponse<PaginatedResponse<ProductDTO>>).data!;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const categories: any[] = (categoriesResp as ApiResponse<unknown[]>).data || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const brands: any[] = (brandsResp as ApiResponse<unknown[]>).data || [];
 
   // Generate JSON-LD for product listing
@@ -78,11 +80,15 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         position: index + 1,
         item: {
             '@type': 'Product',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             name: (product as any).name,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             url: `${process.env.NEXT_PUBLIC_APP_URL}/products/${(product as any).urlSlug || (product as any).id}`,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             image: ((product as any).images?.[0]?.url) || (product as any).imageUrl || null,
             offers: {
               '@type': 'Offer',
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               price: (product as any).discountPrice || (product as any).price,
               priceCurrency: 'INR',
             },

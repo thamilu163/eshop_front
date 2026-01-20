@@ -13,9 +13,8 @@
 
 import NextAuth, { type NextAuthOptions } from 'next-auth';
 import KeycloakProvider from 'next-auth/providers/keycloak';
-import { type JWT } from 'next-auth/jwt';
 import { getKeycloakConfig } from '@/lib/auth/env-config';
-import { AUTH_ERRORS, type AuthErrorCode } from '@/lib/auth/errors';
+import { type AuthErrorCode } from '@/lib/auth/errors';
 import {
   refreshAccessToken as refreshToken,
   logoutFromKeycloak,
@@ -76,6 +75,7 @@ export const authOptions: NextAuthOptions = {
       client: {
         token_endpoint_auth_method: 'none',
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any),
   ],
 
@@ -113,7 +113,7 @@ export const authOptions: NextAuthOptions = {
         if (urlObj.origin === baseUrlObj.origin) return url;
       } catch (error) {
         // Invalid URL, fall through to default
-        console.debug('Redirect URL parsing failed:', { url, error });
+        logger.debug('Redirect URL parsing failed:', { url, error });
       }
       
       // After successful login, always redirect to home page
@@ -128,9 +128,8 @@ export const authOptions: NextAuthOptions = {
         const expiresIn = typeof account.expires_in === 'number' ? account.expires_in : 300; // Default 5 minutes if not provided
         const roles = extractRoles(account.access_token);
         
-        console.log('[Auth/JWT] 🎫 Initial sign in');
-        console.log('[Auth/JWT] Roles extracted:', roles.length > 0 ? roles.join(', ') : 'none');
-        console.log('[Auth/JWT] Token expires in:', expiresIn, 'seconds');
+        logger.info('[Auth/JWT] roles extracted', { count: roles.length, roles: roles.length > 0 ? roles : 'none' });
+        logger.debug('[Auth/JWT] token expires in', { expiresIn });
         
         return {
           ...token,
@@ -156,7 +155,7 @@ export const authOptions: NextAuthOptions = {
       }
 
       // Token is expiring soon - refresh it with validation and error handling (public client)
-      console.log('[Auth/JWT] 🔄 Token expiring soon, refreshing...');
+      logger.info('[Auth/JWT] Token expiring soon, refreshing...');
       logger.info('[auth] Refreshing access token', {
         expiresAt: token.accessTokenExpires ? new Date(token.accessTokenExpires).toISOString() : 'unknown',
       });
@@ -168,10 +167,10 @@ export const authOptions: NextAuthOptions = {
       });
       
       if (refreshedToken.error) {
-        console.log('[Auth/JWT] ❌ Token refresh failed:', refreshedToken.error);
+        logger.error('[Auth/JWT] Token refresh failed', { error: refreshedToken.error });
       } else {
-        console.log('[Auth/JWT] ✅ Token refreshed successfully');
-        console.log('[Auth/JWT] New roles:', refreshedToken.roles?.join(', ') || 'none');
+        logger.info('[Auth/JWT] Token refreshed successfully');
+        logger.debug('[Auth/JWT] New roles', { roles: refreshedToken.roles || 'none' });
       }
       
       return refreshedToken;
@@ -180,7 +179,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       // If there's a token error (expired/invalid), clear the session
       if (token.error) {
-        console.log('[Auth/Session] ⚠️ Session has error:', token.error);
+        logger.warn('[Auth/Session] Session has error', { error: token.error });
         logger.warn('[auth] Session has error, user needs to re-authenticate', {
           error: token.error,
           expiresAt: token.accessTokenExpires ? new Date(token.accessTokenExpires).toISOString() : 'unknown',
@@ -193,9 +192,10 @@ export const authOptions: NextAuthOptions = {
         };
       }
 
-      console.log('[Auth/Session] 📋 Building session');
-      console.log('[Auth/Session] User:', token.email);
-      console.log('[Auth/Session] Roles:', token.roles?.join(', ') || 'none');
+      logger.debug('[Auth/Session] Building session', { 
+        user: token.email,
+        roles: token.roles || 'none'
+      });
 
       // Expose necessary data to session
       session.roles = token.roles;
@@ -213,6 +213,7 @@ export const authOptions: NextAuthOptions = {
       // ✅ Expose accessToken to server-side session (not client)
       // This allows API routes to access it via getServerSession()
       // Client-side cannot access this directly for security
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (session as any).accessToken = token.accessToken;
       
       return session;
@@ -240,7 +241,7 @@ export const authOptions: NextAuthOptions = {
         );
         
         if (!result.success) {
-          console.error('Keycloak logout failed:', result.error);
+          logger.error('Keycloak logout failed:', { error: result.error });
           // Note: Local session is still cleared even if Keycloak logout fails
           // This prevents blocking the user, but SSO sessions may persist
         }
@@ -248,7 +249,7 @@ export const authOptions: NextAuthOptions = {
     },
   },
 
-  debug: process.env.NODE_ENV === 'development',
+  debug: false,
 };
 
 const handler = NextAuth(authOptions);

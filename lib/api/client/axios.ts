@@ -3,6 +3,7 @@
 
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import axiosRetry from 'axios-retry';
+import { logger } from '@/lib/observability/logger';
 
 // ==================== CONFIGURATION ====================
 
@@ -41,8 +42,9 @@ apiClient.interceptors.request.use(
     config.headers['X-Correlation-ID'] = correlationId;
 
     // Log request in development
+    // Log request in development
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, {
+      logger.debug(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, {
         correlationId,
         params: config.params,
         data: config.data,
@@ -52,7 +54,7 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('[API Request Error]', error);
+    logger.error('[API Request Error]', { error });
     return Promise.reject(error);
   }
 );
@@ -62,8 +64,9 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     // Log response in development
+    // Log response in development
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[API Response] ${response.config.method?.toUpperCase()} ${response.config.url}`, {
+      logger.debug(`[API Response] ${response.config.method?.toUpperCase()} ${response.config.url}`, {
         status: response.status,
         data: response.data,
       });
@@ -75,7 +78,8 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
     // Log error
-    console.error('[API Error]', {
+    // Log error
+    logger.error('[API Error]', {
       url: error.config?.url,
       status: error.response?.status,
       message: error.message,
@@ -104,7 +108,7 @@ apiClient.interceptors.response.use(
           return apiClient(originalRequest);
         } catch (refreshError) {
           // Refresh failed: Logout user
-          console.error('[Token Refresh Failed]', refreshError);
+          logger.error('[Token Refresh Failed]', { error: refreshError });
           
           // Call logout API to clear cookies
           await fetch('/api/auth/logout', {
@@ -205,8 +209,9 @@ axiosRetry(apiClient, {
   retries: MAX_RETRIES,
   retryDelay: (retryCount) => {
     // Exponential backoff: 1s, 2s, 4s
+    // Exponential backoff: 1s, 2s, 4s
     const delay = RETRY_DELAY * Math.pow(2, retryCount - 1);
-    console.log(`[Retry] Attempt ${retryCount}, waiting ${delay}ms`);
+    logger.info(`[Retry] Attempt ${retryCount}, waiting ${delay}ms`);
     return delay;
   },
   retryCondition: (error: AxiosError) => {
@@ -236,7 +241,7 @@ axiosRetry(apiClient, {
     return (isNetworkError || isServerError || isRetriable4xx) && isIdempotentMethod;
   },
   onRetry: (retryCount, error, requestConfig) => {
-    console.log(`[Retry] ${retryCount}/${MAX_RETRIES} - ${requestConfig.method?.toUpperCase()} ${requestConfig.url}`);
+    logger.info(`[Retry] ${retryCount}/${MAX_RETRIES} - ${requestConfig.method?.toUpperCase()} ${requestConfig.url}`);
   },
 });
 
@@ -318,8 +323,9 @@ export async function checkApiHealth(): Promise<boolean> {
       timeout: 5000,
     });
     return response.status === 200;
+    return response.status === 200;
   } catch (error) {
-    console.error('[Health Check Failed]', error);
+    logger.error('[Health Check Failed]', { error });
     return false;
   }
 }

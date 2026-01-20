@@ -63,7 +63,7 @@ export function UserNav() {
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link
-            href={isSeller ? '/seller/profile' : '/settings/profile'}
+            href={isSeller ? '/seller/profile' : '/settings'}
             className="cursor-pointer"
           >
             <User className="mr-2 h-4 w-4" />

@@ -3,8 +3,8 @@
  * Demonstrates testing patterns for custom React hooks
  */
 
-import { renderHook, act } from '@testing-library/react';
-import { useAuth } from '@/hooks/useAuth';
+import { renderHook } from '@testing-library/react';
+import { useAuth } from '@/features/auth/hooks/use-auth';
 
 // Mock the auth store
 jest.mock('@/store/auth-store', () => ({

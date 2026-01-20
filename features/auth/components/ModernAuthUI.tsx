@@ -47,7 +47,7 @@ export function ModernAuthUI({
     isAuthenticated, 
     isLoading, 
     login, 
-    register, 
+    // register, 
     logout,
     error 
   } = useKeycloakAuth();

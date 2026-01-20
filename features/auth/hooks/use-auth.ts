@@ -27,9 +27,12 @@ export function useAuth() {
       // Support both response shapes:
       // 1) simplified: { token, user, ... }
       // 2) wrapped: { success: true, data: { token, userId, username, ... } }
+      // 2) wrapped: { success: true, data: { token, userId, username, ... } }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const raw = data as any;
 
       // If wrapped shape, unwrap
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const wrapped: any = raw?.success && raw?.data ? raw.data : raw;
 
       // token may be in wrapped.token or wrapped.data.token
@@ -55,42 +58,20 @@ export function useAuth() {
           };
         }
       }
-
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (user && (user as any).role) {
         // convert legacy `role` to `roles` array for consistency
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (user as any).roles = [(user as any).role];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         delete (user as any).role;
       }
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Login success payload (normalized):', { token, user, rememberMe });
-        console.log('🎭 User roles:', (user as any)?.roles);
-        console.log('🔍 UserRole enum check:', {
-          ADMIN: UserRole.ADMIN,
-          SELLER: UserRole.SELLER,
-          DELIVERY_AGENT: UserRole.DELIVERY_AGENT,
-          CUSTOMER: UserRole.CUSTOMER
-        });
-      }
-      console.log('✅ Role comparison - ADMIN:', (user as any)?.roles?.includes(UserRole.ADMIN));
-      console.log('✅ Role comparison - SELLER:', (user as any)?.roles?.includes(UserRole.SELLER));
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ Login success data:', data);
-          console.log('📝 Token:', token);
-          console.log('👤 User:', user);
-          console.log('🎭 User role:', user?.role);
-          console.log('🔍 UserRole enum check:', {
-            ADMIN: UserRole.ADMIN,
-            SELLER: UserRole.SELLER,
-            DELIVERY_AGENT: UserRole.DELIVERY_AGENT,
-            CUSTOMER: UserRole.CUSTOMER,
-          });
-          console.log('✅ Role comparison - ADMIN:', user?.role === UserRole.ADMIN);
-          console.log('✅ Role comparison - SELLER:', user?.role === UserRole.SELLER);
-        }
+
       // Validate: user object is required. Token may be omitted when server sets httpOnly cookie.
       if (!user) {
-        console.error('❌ Login response missing user', { raw });
+        logger.error('❌ Login response missing user', { raw });
         return;
       }
 
@@ -98,48 +79,45 @@ export function useAuth() {
       if (token) {
         setToken(token, rememberMe);
       } else {
-        if (process.env.NODE_ENV === 'development') console.log('ℹ️ No token in response; relying on httpOnly cookie.');
+        if (process.env.NODE_ENV === 'development') logger.info('ℹ️ No token in response; relying on httpOnly cookie.');
       }
 
       setUser(user);
-      console.log('💾 Token and user saved to storage (rememberMe:', rememberMe, ')');
-            if (process.env.NODE_ENV === 'development') {
-              console.log('💾 Token and user saved to storage (rememberMe:', rememberMe, ')');
-            }
+      logger.debug('💾 Token and user saved to storage', { rememberMe });
       
       // Wait a bit to ensure cookie is set
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['cart'] });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const roles = (user as any)?.roles ?? [];
         
         if (roles.includes(UserRole.ADMIN)) {
           if (process.env.NODE_ENV === 'development') {
-            console.log('🚀 Redirecting to /admin');
+            logger.debug('🚀 Redirecting to /admin');
           }
           router.push('/admin');
         } else if (roles.includes(UserRole.SELLER)) {
           if (process.env.NODE_ENV === 'development') {
-            console.log('🚀 Redirecting to /seller');
+            logger.debug('🚀 Redirecting to /seller');
           }
           router.push('/seller');
         } else if (roles.includes(UserRole.DELIVERY_AGENT)) {
           if (process.env.NODE_ENV === 'development') {
-            console.log('🚀 Redirecting to /delivery');
+            logger.debug('🚀 Redirecting to /delivery');
           }
           router.push('/delivery');
         } else {
           if (process.env.NODE_ENV === 'development') {
-            console.log('🚀 Redirecting to home /');
+            logger.debug('🚀 Redirecting to home /');
           }
           router.push('/');
         }
       }, 100);
     },
     onError: (error) => {
-      console.error('Login error:', error);
-          if (process.env.NODE_ENV === 'development') {
-            console.error('Login error:', error);
-          }
+      if (process.env.NODE_ENV === 'development') {
+        logger.error('Login error:', { error });
+      }
     },
   });
 
@@ -147,24 +125,18 @@ export function useAuth() {
   // Space Complexity: O(1)
   const registerMutation = useMutation({
     mutationFn: (userData: RegisterRequest) => {
-      console.log('🚀 Starting registration mutation with data:', userData);
-            if (process.env.NODE_ENV === 'development') {
-              console.log('🚀 Starting registration mutation with data:', userData);
-            }
       return authApi.register(userData);
     },
     onSuccess: (raw) => {
       // Handle both wrapped and simplified responses
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const resp: any = raw as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const wrapped: any = resp?.success && resp?.data ? resp.data : resp;
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Registration mutation successful, payload:', resp);
-        console.log('➡️ Normalized registration data:', wrapped);
-      }
 
       // If backend returned token and user immediately, set auth
       const token = wrapped?.token ?? wrapped?.data?.token ?? null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const user: any = wrapped?.user ?? (wrapped?.data ? {
         id: wrapped.data.userId,
         username: wrapped.data.username,
@@ -176,7 +148,6 @@ export function useAuth() {
         // If API returned credentials, sign the user in
         setToken(token);
         setUser(user);
-        if (process.env.NODE_ENV === 'development') console.log('💾 Token and user saved to storage after register');
         // Redirect based on role
         const role = user.role;
         if (role === UserRole.ADMIN) router.push('/admin');
@@ -187,7 +158,6 @@ export function useAuth() {
       }
 
       // Otherwise, assume registration succeeded but client should redirect to login
-      if (process.env.NODE_ENV === 'development') console.log('ℹ️ Registration completed; redirecting to login');
       // Redirect to login with flag so login page can show toast
       router.push('/auth/login?registered=true');
     },

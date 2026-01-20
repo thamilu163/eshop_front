@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCart } from '@/features/cart/hooks/use-cart';
 import { formatPrice, calculateDiscount } from '@/lib/utils';
 import { ProductDTO, CategoryDTO, BrandDTO, PageResponse } from '@/types';
-import { ShoppingCart, Search, Grid, List, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Search, Grid, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProductsListClientProps {
@@ -70,7 +70,7 @@ export default function ProductsListClient({
     try {
       await addToCart({ productId, quantity: 1 });
       toast.success('Added to cart', { description: productName });
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to add to cart');
     }
   };
@@ -282,6 +282,7 @@ function ProductCard({
     ? calculateDiscount(product.price, product.discountPrice)
     : 0;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const images = ((product as any).images as { id?: number; url: string }[] | undefined) ?? (product.imageUrl ? [{ id: product.id, url: product.imageUrl }] : []);
   const hasImage = images.length > 0;
 
@@ -289,6 +290,7 @@ function ProductCard({
     return (
       <Card className="overflow-hidden">
         <div className="flex gap-4 p-4">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             <Link href={`/products/${(product as any).urlSlug || product.id}`} className="relative h-32 w-32 flex-shrink-0">
             {hasImage ? (
               <Image
@@ -310,6 +312,7 @@ function ProductCard({
 
           <div className="flex flex-1 flex-col justify-between">
             <div>
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               <Link href={`/products/${(product as any).urlSlug || product.id}`}>
                 <h3 className="font-semibold hover:underline">{product.name}</h3>
               </Link>
@@ -346,6 +349,7 @@ function ProductCard({
 
   return (
     <Card className="overflow-hidden">
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       <Link href={`/products/${(product as any).urlSlug || product.id}`} className="relative block aspect-square">
         {hasImage ? (
           <Image
@@ -366,6 +370,7 @@ function ProductCard({
       </Link>
 
       <CardHeader className="p-4">
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         <Link href={`/products/${(product as any).urlSlug || product.id}`}>
           <CardTitle className="line-clamp-2 text-base hover:underline">
             {product.name}

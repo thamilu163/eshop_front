@@ -53,9 +53,13 @@ export function SellerGuard({ children }: SellerGuardProps) {
 
   // Handle specific error cases that should be treated as "no store yet"
   const isProfileMissingError = isError && 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ((error as any)?.status === 404 || 
+     // eslint-disable-next-line @typescript-eslint/no-explicit-any
      (error as any)?.status === 403 || 
+     // eslint-disable-next-line @typescript-eslint/no-explicit-any
      (error as any)?.message?.includes('not found') ||
+     // eslint-disable-next-line @typescript-eslint/no-explicit-any
      (error as any)?.message?.includes('not a seller'));
 
   if (isError && !isProfileMissingError) {
@@ -72,6 +76,7 @@ export function SellerGuard({ children }: SellerGuardProps) {
             <p className="mb-4 text-sm font-medium">Failed to verify your seller profile. Please try again later.</p>
             {error && (
               <p className="mb-4 text-xs opacity-70 bg-red-100/50 p-2 rounded">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 Ref: {(error as any).message}
               </p>
             )}

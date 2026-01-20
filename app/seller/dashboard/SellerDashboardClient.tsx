@@ -13,8 +13,9 @@ import { signOut } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Package, DollarSign, ShoppingCart, TrendingUp, RefreshCw } from 'lucide-react';
+import { AlertCircle, Package, DollarSign, ShoppingCart, RefreshCw } from 'lucide-react';
 import { sellerApi } from '@/lib/api/backend';
+import { logger } from '@/lib/observability/logger';
 
 interface DashboardStats {
   totalProducts: number;
@@ -25,6 +26,7 @@ interface DashboardStats {
 
 interface DashboardData {
   stats?: DashboardStats;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   recentProducts?: any[];
   error?: string;
 }
@@ -43,15 +45,14 @@ export default function SellerDashboardClient({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(initialData?.error || null);
 
-  console.log('[Dashboard/Client] Component mounted');
-  console.log('[Dashboard/Client] Session user:', session?.user?.email);
-  console.log('[Dashboard/Client] Session roles:', session?.roles?.join(', '));
-  console.log('[Dashboard/Client] Initial data:', { hasStats: !!stats, productsCount: products.length });
+  logger.debug('[Dashboard/Client] Component mounted');
+  logger.debug('[Dashboard/Client] Session check', { user: session?.user?.email, roles: session?.roles });
+  logger.debug('[Dashboard/Client] Initial data', { hasStats: !!stats, productsCount: products.length });
 
   // Check for session errors on mount and when session changes
   useEffect(() => {
     if (session.error === 'TokenExpired' || session.error === 'RefreshAccessTokenError') {
-      console.log('[Dashboard/Client] ⚠️ Token expired, signing out');
+      logger.warn('[Dashboard/Client] Token expired, signing out');
       signOut({ callbackUrl: '/login?error=session_expired' });
     }
   }, [session.error]);
@@ -62,19 +63,21 @@ export default function SellerDashboardClient({
     setError(null);
 
     try {
-      console.log('[Dashboard/Client] 🔄 Fetching products...');
+      logger.debug('[Dashboard/Client] Fetching products...');
       
       const response = await sellerApi.getProducts();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const productList = (response as any).products || [];
       
-      console.log('[Dashboard/Client] ✅ Fetched', productList.length, 'products');
+      logger.info('[Dashboard/Client] Fetched products', { count: productList.length });
       setProducts(productList);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      console.error('[Dashboard/Client] ❌ Error:', err);
+      logger.error('[Dashboard/Client] Error', { error: err });
       
       if (err?.message?.includes('Unauthorized')) {
-        console.log('[Dashboard/Client] ❌ Token expired, signing out');
+        logger.warn('[Dashboard/Client] Token expired, signing out');
         signOut({ callbackUrl: '/login?error=unauthorized' });
         return;
       }
@@ -96,7 +99,7 @@ export default function SellerDashboardClient({
     setError(null);
 
     try {
-      console.log('[Dashboard/Client] 🔄 Fetching dashboard stats...');
+      logger.debug('[Dashboard/Client] Fetching dashboard stats...');
       
       const response = await sellerApi.getDashboard();
       
@@ -115,15 +118,16 @@ export default function SellerDashboardClient({
         stock: p.stockQuantity,
       }));
       
-      console.log('[Dashboard/Client] ✅ Fetched stats:', newStats);
+      logger.info('[Dashboard/Client] Fetched stats', { stats: newStats });
       setStats(newStats);
       setProducts(newProducts);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      console.error('[Dashboard/Client] ❌ Error:', err);
+      logger.error('[Dashboard/Client] Error', { error: err });
       
       if (err?.message?.includes('Unauthorized')) {
-        console.log('[Dashboard/Client] ❌ Token expired, signing out');
+        logger.warn('[Dashboard/Client] Token expired, signing out');
         signOut({ callbackUrl: '/login?error=unauthorized' });
         return;
       }
@@ -148,28 +152,11 @@ export default function SellerDashboardClient({
                   Welcome back, {session?.user?.name || session?.user?.email || 'Seller'}!
                 </CardDescription>
               </div>
-              <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm px-3 py-1">
-                {session?.roles?.join(', ') || 'SELLER'}
-              </Badge>
             </div>
           </CardHeader>
         </Card>
 
-        {/* Session Info for Debugging */}
-        {process.env.NODE_ENV === 'development' && (
-          <Card className="border-yellow-500 border-2">
-            <CardHeader>
-              <CardTitle className="text-sm">🔍 Debug Info</CardTitle>
-            </CardHeader>
-            <CardContent className="text-xs space-y-1">
-              <p><strong>Email:</strong> {session?.user?.email}</p>
-              <p><strong>Name:</strong> {session?.user?.name}</p>
-              <p><strong>Roles:</strong> {session?.roles?.join(', ') || 'none'}</p>
-              <p><strong>Has Access Token:</strong> {(session as any)?.accessToken ? '✅ Yes' : '❌ No'}</p>
-              <p><strong>Expires At:</strong> {session?.expiresAt ? new Date(session.expiresAt).toLocaleString() : 'unknown'}</p>
-            </CardContent>
-          </Card>
-        )}
+
 
         {/* Error Alert */}
         {error && (
@@ -277,6 +264,7 @@ export default function SellerDashboardClient({
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {products.map((product: any) => (
                   <Card key={product.id} className="border hover:shadow-md transition-all">
                     <CardContent className="p-4">

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Enterprise Structured Logging Module
  * 
@@ -178,6 +179,16 @@ class Logger {
         return JSON.stringify(obj, function (_key, value) {
           if (typeof value === 'bigint') {
             return value.toString();
+          }
+          if (value instanceof Error) {
+            return {
+              name: value.name,
+              message: value.message,
+              stack: value.stack,
+              cause: value.cause,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              ...(value as any),
+            };
           }
           if (typeof value === 'object' && value !== null) {
             if (seen.has(value)) return '[Circular]';

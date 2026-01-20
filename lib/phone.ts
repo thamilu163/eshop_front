@@ -18,6 +18,7 @@ export function normalizePhone(input: string, defaultCountry = 'IN'): NormalizeP
 
   try {
     const country: string | undefined = phoneInput.startsWith('+') ? undefined : defaultCountry;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const parsed = parsePhoneNumberFromString(String(phoneInput), country as any);
     if (!parsed || !parsed.isValid()) {
       return { error: 'Invalid phone number' };

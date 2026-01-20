@@ -2,8 +2,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Sparkles, TrendingUp, Tag, Star, Shield } from 'lucide-react';
-import RegisterPrompt from './RegisterPrompt';
+import { Sparkles, TrendingUp, Star, Shield } from 'lucide-react';
+
 
 /**
  * Hero Section - Server Component
@@ -43,6 +43,7 @@ export default function Hero() {
               priority
               quality={90}
               sizes="100vw"
+              unoptimized
             />
           </div>
 

@@ -7,7 +7,9 @@ export interface CategoryTemplate {
   name: string
   fields: string[]
   variants?: string[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   autoDescriptionTemplate?: (data: any) => string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   defaults?: Record<string, any>
 }
 

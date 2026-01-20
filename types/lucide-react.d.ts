@@ -4,7 +4,8 @@ import type {
   SVGProps,
   CSSProperties,
   Ref,
-  ComponentType,
+  // ComponentType is not used but kept for reference
+  // ComponentType,
 } from 'react';
 
 // Project-level improved typings for `lucide-react` to avoid editing node_modules

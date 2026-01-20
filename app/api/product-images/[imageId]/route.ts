@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const productImages: any[] = (global as Record<string, unknown>).__PRODUCT_IMAGES_STORE__ as any[] || [];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function GET(request: NextRequest, context: any) {
   const paramsObj = await Promise.resolve(context?.params);
   const imageId = String(paramsObj?.imageId || '');
@@ -11,12 +13,14 @@ export async function GET(request: NextRequest, context: any) {
     if (!image) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(image);
   }
-
+  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const image = productImages.find((img: any) => img.id === imageId);
   if (!image) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json(image);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function DELETE(request: NextRequest, context: any) {
   const paramsObj = await Promise.resolve(context?.params);
   const imageId = String(paramsObj?.imageId || '');
@@ -26,6 +30,7 @@ export async function DELETE(request: NextRequest, context: any) {
     return NextResponse.json({ success: true });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const idx = productImages.findIndex((img: any) => img.id === imageId);
   if (idx === -1) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   productImages.splice(idx, 1);
@@ -33,6 +38,7 @@ export async function DELETE(request: NextRequest, context: any) {
   return NextResponse.json({ success: true });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function PUT(request: NextRequest, context: any) {
   const paramsObj = await Promise.resolve(context?.params);
   const imageId = String(paramsObj?.imageId || '');
@@ -43,6 +49,7 @@ export async function PUT(request: NextRequest, context: any) {
     return NextResponse.json(updated);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const idx = productImages.findIndex((img: any) => img.id === imageId);
   if (idx === -1) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   const updated = { ...(productImages[idx] as object), ...body };

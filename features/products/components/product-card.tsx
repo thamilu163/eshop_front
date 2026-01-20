@@ -64,9 +64,10 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
         createdAt: new Date().toISOString(),
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await addToCart(item as any); // Type assertion needed until cart store types are updated
       toast.success('Added to cart');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to add to cart');
     } finally {
       setIsAddingToCart(false);
@@ -95,7 +96,9 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           originalPrice: product.price,
           image: product.imageUrl ?? '',
           category: product.category?.name ?? '',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           rating: (product as any).averageRating ?? 0, // TODO: Add to ProductDTO type
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           reviews: (product as any).reviewCount ?? 0, // TODO: Add to ProductDTO type
           inStock: product.stockQuantity > 0,
           priceDropAlert: false,
@@ -113,7 +116,9 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
     ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
     : 0;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const averageRating = (product as any).averageRating ?? 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const reviewCount = (product as any).reviewCount ?? 0;
   const isLowStock = product.stockQuantity > 0 && product.stockQuantity <= 5;
 

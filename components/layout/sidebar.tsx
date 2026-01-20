@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
-import { useAuthStore } from '@/store/auth-store';
+
 import { UserRole } from '@/types';
 import { Home, LayoutDashboard, Users, Package, ShoppingCart, Settings, Truck, Clock } from 'lucide-react';
 
@@ -11,6 +11,7 @@ function classNames(...args: Array<string | false | null | undefined>) {
   return args.filter(Boolean).join(' ');
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const NAV_CONFIG: Record<string, { label: string; links: { href: string; label: string; Icon?: any }[] }> = {
   [UserRole.ADMIN]: {
     label: 'Admin',
@@ -49,6 +50,7 @@ const NAV_CONFIG: Record<string, { label: string; links: { href: string; label: 
   },
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function NavLink({ href, children, Icon, pathname }: { href: string; children: React.ReactNode; Icon?: any; pathname: string }) {
   const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
 

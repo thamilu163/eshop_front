@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
  
-import { Slider } from '@/components/ui/slider';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { X, SlidersHorizontal } from 'lucide-react';
 
@@ -81,7 +81,7 @@ export function ProductFilters({
   // Ensure resolver type matches react-hook-form types
   const resolver = zodResolver(FilterSchema) as unknown as Resolver<FilterFormData>;
 
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FilterFormData>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<FilterFormData>({
     resolver,
     defaultValues: {
       category: selectedCategory,
@@ -171,9 +171,9 @@ export function ProductFilters({
   
   // Watch for price range changes (debounced)
    
-  const watchedMinPrice = watch('minPrice');
+  // const watchedMinPrice = watch('minPrice');
    
-  const watchedMaxPrice = watch('maxPrice');
+  // const watchedMaxPrice = watch('maxPrice');
   
   const hasActiveFilters = selectedCategory || minPrice || maxPrice || (sort && sort !== 'createdAt,desc');
   

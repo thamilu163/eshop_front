@@ -43,6 +43,7 @@ export function useKeycloakAuth() {
   const { data: session, status } = useSession();
 
   const token = session?.accessToken;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tokenData = (session?.user as any) ?? null;
   const idToken = null; // NextAuth doesn't expose idToken by default
   const error = session?.error ?? null;
@@ -61,6 +62,7 @@ export function useKeycloakAuth() {
   const user = useMemo<TokenData | null>(() => {
     if (!session?.user) return null;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const u = session.user as any;
     return {
       sub: u.id ?? u.sub ?? '',

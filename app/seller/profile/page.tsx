@@ -14,9 +14,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Store, Loader2, Save, User } from 'lucide-react';
+import { Loader2, Save, User } from 'lucide-react';
 import { getSellerProfile, updateSellerProfile } from '@/features/seller/api';
 import type { SellerProfile } from '@/features/seller/types';
+import { SellerIdentityType } from '@/types';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,7 +37,6 @@ export default function SellerProfilePage() {
     register,
     handleSubmit,
     formState: { errors },
-    setValue,
     reset,
   } = useForm<SellerProfileUpdateFormData>({
     resolver: zodResolver(sellerProfileUpdateSchema),
@@ -59,6 +59,7 @@ export default function SellerProfilePage() {
 
     // Load seller profile
     const loadProfile = async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const accessToken = (session as any)?.accessToken;
       if (!accessToken) return;
 
@@ -73,7 +74,6 @@ export default function SellerProfilePage() {
         setProfile(data);
         // Populate form with existing data
         reset({
-          sellerType: data.sellerType,
           displayName: data.displayName,
           businessName: data.businessName || '',
           email: data.email,
@@ -93,6 +93,7 @@ export default function SellerProfilePage() {
   }, [session, status, router, reset]);
 
   const onSubmit = async (data: SellerProfileUpdateFormData) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const accessToken = (session as any)?.accessToken;
     if (!accessToken) {
       toast.error('Authentication required');
@@ -105,6 +106,7 @@ export default function SellerProfilePage() {
       const updated = await updateSellerProfile(data, accessToken);
       setProfile(updated);
       toast.success('Profile updated successfully');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error('[SellerProfile] Update failed:', error);
       toast.error('Failed to update profile', {
@@ -199,7 +201,7 @@ export default function SellerProfilePage() {
               </div>
 
               {/* Tax ID */}
-              {profile?.sellerType === 'BUSINESS' && (
+              {profile?.identityType === SellerIdentityType.BUSINESS && (
                 <div className="space-y-2">
                   <Label htmlFor="taxId">Tax ID (optional)</Label>
                   <Input
@@ -255,8 +257,12 @@ export default function SellerProfilePage() {
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Seller Type:</span>
-                <span className="font-medium">{profile.sellerType}</span>
+                <span className="text-muted-foreground">Identity Type:</span>
+                <span className="font-medium">{profile.identityType}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Business Types:</span>
+                <span className="font-medium">{profile.businessTypes.join(', ')}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Member Since:</span>

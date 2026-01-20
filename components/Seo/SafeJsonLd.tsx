@@ -7,6 +7,7 @@ interface SafeJsonLdProps {
 
 export default async function SafeJsonLd({ data }: SafeJsonLdProps) {
   const h = await headers();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const nonce = (h as any).get ? (h as any).get('x-csp-nonce') : undefined;
 
   return (
